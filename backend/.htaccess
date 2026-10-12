@@ -1,0 +1,3 @@
+# This Laravel app lives inside XAMPP's htdocs. Block Apache from serving any of
+# its files (especially .env). Run it with "php artisan serve" instead.
+Require all denied

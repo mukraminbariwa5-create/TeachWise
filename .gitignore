@@ -1,0 +1,18 @@
+# Packages and builds (reinstalled with composer install / npm install)
+node_modules/
+backend/vendor/
+app/dist/
+app/.expo/
+
+# Secrets and local data
+.env
+*.sqlite
+*.sqlite-journal
+
+# Hand-off archives
+*.tgz
+*.tar.gz
+
+.DS_Store
+Thumbs.db
+*.log
