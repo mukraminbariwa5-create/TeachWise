@@ -16,3 +16,4 @@ app/.expo/
 .DS_Store
 Thumbs.db
 *.log
+push-log.txt
