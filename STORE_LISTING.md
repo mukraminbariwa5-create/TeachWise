@@ -48,7 +48,7 @@ Copy these into the Play Console. TeachWise is one app for every school that use
 > • Track completion by section and send reminders
 > • Faculty reports and a CSV export
 >
-> Professor Wise, the TeachWise owl, guides everyone along the way and answers questions about evaluations.
+> Professor Wise, the TeachWise mascot, guides everyone along the way and answers questions about evaluations.
 >
 > Available in English and Filipino, with dark mode.
 >
@@ -87,7 +87,7 @@ Copy these into the Play Console. TeachWise is one app for every school that use
 > • Pagsubaybay ng pagkumpleto ayon sa section at pagpapadala ng paalala
 > • Mga report ng faculty at CSV export
 >
-> Ginagabayan ni Professor Wise, ang kuwago ng TeachWise, ang lahat at sinasagot ang mga tanong tungkol sa evaluation.
+> Ginagabayan ni Professor Wise, ang mascot ng TeachWise, ang lahat at sinasagot ang mga tanong tungkol sa evaluation.
 >
 > May English at Filipino, at dark mode.
 >

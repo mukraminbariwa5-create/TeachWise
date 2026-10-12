@@ -1,6 +1,6 @@
 # TeachWise
 
-Anonymous instructional evaluation for schools, on **Android** and the **web**, guided by **Professor Wise**, a friendly owl who walks everyone through it.
+Anonymous instructional evaluation for schools, on **Android** and the **web**, guided by **Professor Wise**, a friendly cartoon professor who walks everyone through it.
 
 Students rate their teachers in about three minutes per class. Teachers get clear, anonymous results with trends, focus areas and comments. Admins run the whole process from one dashboard. One app and one server serve **many schools**, and each school's data is kept strictly separate.
 
@@ -13,10 +13,10 @@ Students rate their teachers in about three minutes per class. Teachers get clea
 | ![Faculty report](docs/screenshots/report.png) | ![Admin dashboard](docs/screenshots/admin-dashboard.png) |
 | **Evaluation setup** | **People and invites** |
 | ![Evaluation setup](docs/screenshots/admin-evaluation.png) | ![People and invites](docs/screenshots/admin-people.png) |
-| **Sign in (pick your school)** | **Professor Wise** |
-| ![Sign in](docs/screenshots/sign-in.png) | ![Professor Wise](docs/screenshots/wise.png) |
-| **Owner: approving schools** | **Dark mode** |
-| ![Owner](docs/screenshots/owner-schools.png) | ![Dark mode](docs/screenshots/dark-mode.png) |
+| **Sign in (pick your school)** | **Dark mode with Professor Wise** |
+| ![Sign in](docs/screenshots/sign-in.png) | ![Dark mode](docs/screenshots/dark-mode.png) |
+| **Professor Wise on a phone** | **Admin on a phone (dark)** |
+| <img src="docs/screenshots/wise.png" alt="Professor Wise on a phone" width="320"> | <img src="docs/screenshots/mobile.png" alt="Admin on a phone" width="320"> |
 
 ## Features
 
