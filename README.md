@@ -17,6 +17,8 @@ Students rate their teachers in about three minutes per class. Teachers get clea
 | ![Sign in](docs/screenshots/sign-in.png) | ![Dark mode](docs/screenshots/dark-mode.png) |
 | **Professor Wise on a phone** | **Admin on a phone (dark)** |
 | <img src="docs/screenshots/wise.png" alt="Professor Wise on a phone" width="320"> | <img src="docs/screenshots/mobile.png" alt="Admin on a phone" width="320"> |
+| **Owner: TeachWise overview** | **Owner: approving schools** |
+| <img src="docs/screenshots/owner-overview.png" alt="Owner overview" width="320"> | <img src="docs/screenshots/owner-schools.png" alt="Owner schools list" width="320"> |
 
 ## Features
 
