@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { dehydrate, hydrate, type QueryClient } from '@tanstack/react-query';
+import { dehydrate, hydrate, type DehydratedState, type QueryClient } from '@tanstack/react-query';
 
 /**
  * Saves the last loaded dashboards, history and notifications on the device, so pages open
@@ -41,7 +41,7 @@ export async function restoreQueryCache(client: QueryClient): Promise<void> {
   const raw = await storage.get();
   if (!raw) return;
   try {
-    const { savedAt, state } = JSON.parse(raw) as { savedAt: number; state: unknown };
+    const { savedAt, state } = JSON.parse(raw) as { savedAt: number; state: DehydratedState };
     if (Date.now() - savedAt < MAX_AGE) hydrate(client, state);
   } catch {
     await storage.clear();

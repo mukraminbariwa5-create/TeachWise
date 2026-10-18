@@ -124,7 +124,7 @@ class StudentController extends Controller
     private function authorizeOffering(User $student, ClassOffering $offering): void
     {
         abort_unless(
-            $student->studentProfile && $offering->section_id === $student->studentProfile->section_id,
+            $student->studentProfile && (int) $offering->section_id === (int) $student->studentProfile->section_id,
             403,
             'You are not enrolled in this class.'
         );

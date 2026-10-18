@@ -18,6 +18,7 @@ import { clearDraft, getDraft, saveDraft, type Draft } from '@/lib/drafts';
 import { tr } from '@/lib/i18n';
 import { useQueryClient } from '@tanstack/react-query';
 import { useIsWide } from '@/lib/useLayout';
+import { useTitle } from '@/lib/useTitle';
 import { colors, fonts, shadowStyle } from '@/theme';
 
 /** Professor Wise's face for each point on the scale. */
@@ -41,7 +42,7 @@ export interface EvaluationAnswers {
 
 /**
  * The full evaluation experience, shared by students (rating teachers) and teachers (peer evaluation):
- * one question at a time with Professor Wise reacting, auto-advance, comments, a review step,
+ * one question at a time with Professor Wise reacting, Next to move on, comments, a review step,
  * drafts saved on the device, and a celebration at the end.
  */
 export function EvaluationFlow({
@@ -71,6 +72,7 @@ export function EvaluationFlow({
   const wide = useIsWide();
   const form = { data };
   useHideLauncher();
+  useTitle(data ? `${tr('Evaluate', 'Mag-evaluate')} ${data.teacher.name}` : tr('Evaluate', 'Mag-evaluate'));
 
   // step 0..n-1 = rating questions, n = comments, n+1 = review
   const [step, setStep] = useState(0);
@@ -120,20 +122,22 @@ export function EvaluationFlow({
     setStep(s);
   };
 
-  /** Pick a rating, let Professor Wise react for a moment, then move on by itself. */
+  /** Pick a rating. Professor Wise reacts; the person moves on with Next when they are ready. */
   const pick = (value: number) => {
     if (!current) return;
     tap();
     setRatings((r) => ({ ...r, [current.id]: value }));
-    cancelAdvance();
-    advance.current = setTimeout(() => {
-      if (editingFromReview) {
-        setEditingFromReview(false);
-        setStep(reviewStep);
-      } else {
-        setStep((s) => Math.min(s + 1, commentStep));
-      }
-    }, 650);
+  };
+
+  /** Next: the following question, or straight back to the review when changing one answer. */
+  const next = () => {
+    if (!current || ratings[current.id] === undefined) return;
+    if (editingFromReview) {
+      setEditingFromReview(false);
+      goTo(reviewStep);
+    } else {
+      goTo(Math.min(step + 1, commentStep));
+    }
   };
 
   useEffect(() => cancelAdvance, []);
@@ -146,7 +150,8 @@ export function EvaluationFlow({
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return;
       if (current && /^[1-5]$/.test(e.key)) pick(Number(e.key));
       else if (e.key === 'ArrowLeft' && step > 0) goTo(step - 1);
-      else if (e.key === 'ArrowRight' && (step >= n || (current && ratings[current.id]))) goTo(Math.min(step + 1, reviewStep));
+      else if (e.key === 'ArrowRight' && current && ratings[current.id] !== undefined) next();
+      else if (e.key === 'ArrowRight' && step === commentStep && ratingQs.every((q) => ratings[q.id] !== undefined)) goTo(reviewStep);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -292,12 +297,12 @@ export function EvaluationFlow({
                     {current.text}
                   </Txt>
                   <RatingCards scale={scale} value={ratings[current.id]} onPick={pick} wide={wide} />
-                  {wide && <Txt size={13} color={colors.muted} style={{ textAlign: 'center' }}>{tr('Tip: press 1 to 5 on your keyboard. ← → to move between questions.', 'Tip: pindutin ang 1 hanggang 5 sa keyboard. ← → para lumipat ng tanong.')}</Txt>}
+                  {wide && <Txt size={13} color={colors.muted} style={{ textAlign: 'center' }}>{tr('Tip: press 1 to 5 to choose, then → for the next question. ← goes back.', 'Tip: pindutin ang 1 hanggang 5 para pumili, saka → para sa susunod na tanong. ← para bumalik.')}</Txt>}
                 </>
               ) : step === commentStep ? (
                 <View style={{ gap: 16 }}>
                   <Reaction value="comment" wide={wide} />
-                  <Txt weight="semibold" size={20} accessibilityRole="header" style={{ marginHorizontal: 4 }}>Anything else to share?</Txt>
+                  <Txt weight="semibold" size={20} accessibilityRole="header" style={{ marginHorizontal: 4 }}>{tr('Anything else to share?', 'May gusto ka pang ibahagi?')}</Txt>
                   {textQs.map((q) => (
                     <LabeledInput key={q.id} label={q.text} value={texts[q.id] ?? ''} onChange={(v) => setTexts((t) => ({ ...t, [q.id]: v }))} />
                   ))}
@@ -329,7 +334,7 @@ export function EvaluationFlow({
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <Button title={tr('Previous', 'Nakaraan')} variant="outline" size="lg" disabled={step === 0} onPress={() => goTo(Math.max(0, step - 1))} style={{ flex: 1, opacity: step === 0 ? 0.5 : 1 }} />
             {step < n ? (
-              <Button title={tr('Next', 'Susunod')} size="lg" disabled={!current || ratings[current.id] === undefined} onPress={() => goTo(step + 1)} style={{ flex: 1.4 }} />
+              <Button title={editingFromReview ? tr('Back to review', 'Bumalik sa pagsusuri') : tr('Next', 'Susunod')} size="lg" disabled={!current || ratings[current.id] === undefined} onPress={next} style={{ flex: 1.4 }} />
             ) : step === commentStep ? (
               <Button title={tr('Review answers', 'Suriin ang sagot')} size="lg" disabled={!allRated} onPress={() => goTo(reviewStep)} style={{ flex: 1.4 }} />
             ) : (

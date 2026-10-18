@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Models\EvaluationPeriod;
+use App\Models\School;
 use App\Models\User;
 use Database\Seeders\DemoSeeder;
 use Database\Seeders\DemoUpgradeSeeder;
@@ -33,7 +35,11 @@ class LoadDemoData extends Command
         }
         if (User::where('username', 'aisha')->exists()) {
             if (User::where('username', 'owner')->exists()) {
+                $moved = $this->refreshDemoPeriods();
                 $this->warn('Demo data is already loaded.');
+                if ($moved) {
+                    $this->info("Moved {$moved} demo evaluation period(s) so they are open again from today.");
+                }
 
                 return self::SUCCESS;
             }
@@ -55,5 +61,33 @@ class LoadDemoData extends Command
         $this->line('Every demo account uses the password: password');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Demo periods are only open for a few days after the data is loaded. When they have
+     * closed, move them so the demo can be used again (evaluations already given are kept).
+     */
+    private function refreshDemoPeriods(): int
+    {
+        $schools = School::whereIn('code', ['DEMO', 'SAMPLE'])->pluck('id');
+        $moved = 0;
+
+        $plan = [
+            // name => [opens, closes] relative to today
+            'Midterm' => [now()->subDay()->startOfDay(), now()->addDays(6)->endOfDay()],
+            'Faculty-to-faculty' => [now()->startOfDay(), now()->addDays(7)->endOfDay()],
+            'Finals' => [now()->addWeeks(8)->startOfDay(), now()->addWeeks(8)->addDays(2)->endOfDay()],
+        ];
+
+        EvaluationPeriod::whereIn('school_id', $schools)->get()->each(function (EvaluationPeriod $period) use ($plan, &$moved) {
+            if (! isset($plan[$period->name]) || $period->closes_at->isFuture()) {
+                return;
+            }
+            [$opens, $closes] = $plan[$period->name];
+            $period->update(['opens_at' => $opens, 'closes_at' => $closes, 'announced_at' => null, 'reminded_at' => null]);
+            $moved++;
+        });
+
+        return $moved;
     }
 }
