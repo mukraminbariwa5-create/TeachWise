@@ -331,8 +331,11 @@ export function EvaluationFlow({
             </View>
           )}
 
+          {step < n && current && ratings[current.id] === undefined && (
+            <Txt size={13} color={colors.muted} style={{ textAlign: 'center', marginBottom: -4 }}>{tr('Pick a rating to continue.', 'Pumili ng rating para magpatuloy.')}</Txt>
+          )}
           <View style={{ flexDirection: 'row', gap: 12 }}>
-            <Button title={tr('Previous', 'Nakaraan')} variant="outline" size="lg" disabled={step === 0} onPress={() => goTo(Math.max(0, step - 1))} style={{ flex: 1, opacity: step === 0 ? 0.5 : 1 }} />
+            <Button title={tr('Previous', 'Nakaraan')} variant="outline" size="lg" disabled={step === 0} onPress={() => goTo(Math.max(0, step - 1))} style={{ flex: 1 }} />
             {step < n ? (
               <Button title={editingFromReview ? tr('Back to review', 'Bumalik sa pagsusuri') : tr('Next', 'Susunod')} size="lg" disabled={!current || ratings[current.id] === undefined} onPress={next} style={{ flex: 1.4 }} />
             ) : step === commentStep ? (
@@ -347,13 +350,24 @@ export function EvaluationFlow({
   );
 }
 
-/** Five big cards, each with Professor Wise's face for that rating. A row on computers, a list on phones. */
+/** Each point on the scale has its own colour, from warm (1) to green (5), so the choice reads at a glance. */
+const rateColors = (n: number) => {
+  const k = Math.max(1, Math.min(5, Math.round(n))) as 1 | 2 | 3 | 4 | 5;
+  return { tint: colors[`rate${k}Bg`], strong: colors[`rate${k}`] };
+};
+
+/**
+ * Five big cards, each with Professor Wise's face for that rating, tinted from warm to green.
+ * The picked card fills with its colour and his face pops. A row on computers, a list on phones.
+ */
 function RatingCards({ scale, value, onPick, wide }: { scale: Record<string, string>; value?: number; onPick: (n: number) => void; wide: boolean }) {
   const entries = Object.entries(scale).map(([v, label]) => ({ n: Number(v), label }));
   return (
     <View accessibilityRole="radiogroup" style={{ flexDirection: wide ? 'row' : 'column', gap: wide ? 12 : 10 }}>
       {entries.map(({ n, label }) => {
         const on = value === n;
+        const dim = value !== undefined && !on;
+        const c = rateColors(n);
         return (
           <Pressable
             key={n}
@@ -363,30 +377,32 @@ function RatingCards({ scale, value, onPick, wide }: { scale: Record<string, str
             onPress={() => onPick(n)}
             style={({ hovered, pressed }: { hovered?: boolean; pressed?: boolean }) => [
               {
-                borderRadius: 22,
+                borderRadius: 24,
                 borderWidth: 2,
-                borderColor: on ? colors.navy : hovered ? colors.border : colors.borderSoft,
-                backgroundColor: on ? colors.navy : hovered ? colors.surface : colors.card,
-                transform: [{ scale: pressed ? 0.96 : on ? 1.02 : 1 }],
+                borderColor: on ? c.strong : hovered ? c.strong : colors.borderSoft,
+                backgroundColor: on ? c.strong : colors.card,
+                opacity: dim && !hovered ? 0.72 : 1,
+                transform: [{ scale: pressed ? 0.96 : on ? 1.04 : hovered ? 1.02 : 1 }],
               },
+              on ? shadowStyle('lift') : null,
               wide
-                ? { flex: 1, minHeight: 150, alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, paddingHorizontal: 6 }
-                : { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 12 },
+                ? { flex: 1, minHeight: 176, alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 16, paddingHorizontal: 6 }
+                : { minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 12 },
             ]}
           >
-            <View style={{ width: wide ? 70 : 46, height: wide ? 62 : 42, borderRadius: 16, backgroundColor: on ? 'rgba(255,255,255,0.95)' : colors.brandSoft, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              <WiseHead size={wide ? 46 : 32} mood={FACES[n] ?? 'neutral'} />
+            <View style={{ width: wide ? 92 : 54, height: wide ? 82 : 50, borderRadius: wide ? 22 : 16, backgroundColor: on ? '#FFFFFF' : c.tint, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              <WiseHead key={on ? 'on' : 'off'} size={wide ? 68 : 40} mood={FACES[n] ?? 'neutral'} pop={on} />
             </View>
             {wide ? (
               <>
-                <Txt weight="bold" size={22} color={on ? '#FFFFFF' : colors.text}>{String(n)}</Txt>
-                <Txt weight="medium" size={14} color={on ? '#FFFFFF' : colors.textSoft} style={{ textAlign: 'center' }}>{label}</Txt>
+                <Txt weight="bold" size={24} color={on ? '#FFFFFF' : c.strong}>{String(n)}</Txt>
+                <Txt weight="semibold" size={15} color={on ? '#FFFFFF' : colors.textSoft} style={{ textAlign: 'center' }}>{label}</Txt>
               </>
             ) : (
               <>
                 <Txt weight="semibold" size={17} color={on ? '#FFFFFF' : colors.text} style={{ flex: 1 }}>{label}</Txt>
-                <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: on ? '#FFFFFF' : colors.chip, alignItems: 'center', justifyContent: 'center' }}>
-                  <Txt weight="bold" size={15} color={on ? '#0B0B6E' : colors.accent}>{String(n)}</Txt>
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: on ? '#FFFFFF' : c.tint, alignItems: 'center', justifyContent: 'center' }}>
+                  {on ? <Icon name="check" size={18} color={c.strong} strokeWidth={3} /> : <Txt weight="bold" size={15} color={c.strong}>{String(n)}</Txt>}
                 </View>
               </>
             )}

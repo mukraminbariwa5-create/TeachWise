@@ -185,13 +185,24 @@ export interface TeacherDashboard {
   peer_evaluation?: boolean;
   /** Results stay hidden until enough people answered (protects anonymity in small classes). */
   privacy?: { min_responses: number; locked: boolean };
+  /** "What to work on": the lowest-rated areas with a few practical tips each. */
+  focus?: FocusArea[];
+}
+
+export interface FocusArea {
+  question_id: number;
+  category: string;
+  average: number;
+  tips: string[];
 }
 
 export interface FacultyReport {
   teacher: Person;
   period: Period | null;
   generated_at: string;
-  student_ratings: { overall: Overall; criteria: Criterion[] };
+  student_ratings: { overall: Overall; criteria: Criterion[]; /** Answers per score, "1"…"5". */ distribution?: Record<string, number> };
+  /** Average student rating of the teacher's whole department, for context. */
+  department_average?: number | null;
   peer_ratings: { overall: Overall; criteria: Criterion[] };
   classes: { subject_code: string | null; subject_name: string | null; section: string | null; responses: number; average: number }[];
   trend: TrendPoint[];

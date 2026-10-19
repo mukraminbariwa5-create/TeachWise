@@ -27,7 +27,7 @@ import { api } from '@/api/client';
 import { keys } from '@/api/hooks';
 import { greetingWord, parts, periodProgress, shortDate, time } from '@/lib/format';
 import { useLayoutSize } from '@/lib/useLayout';
-import { colors, shadowStyle } from '@/theme';
+import { colors, radius, shadowStyle, space } from '@/theme';
 
 type Teacher = StudentDashboard['teachers'][number];
 
@@ -107,8 +107,8 @@ function TourOffer({ onStart, onDismiss, phone }: { onStart: () => void; onDismi
   return (
     <FadeIn>
       <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.card, borderRadius: phone ? 24 : 28, padding: phone ? 14 : 18, borderWidth: 1.5, borderColor: colors.brandSoft }, shadowStyle('soft')]}>
-        <View style={{ width: phone ? 58 : 70, height: phone ? 58 : 70, borderRadius: 20, backgroundColor: colors.brandSoft, alignItems: 'center', justifyContent: 'flex-end', overflow: 'hidden' }}>
-          <WiseMascot size={phone ? 60 : 72} mood="lecture" float={false} shadow={false} />
+        <View style={{ width: phone ? 48 : 56, height: phone ? 48 : 56, borderRadius: 28, backgroundColor: colors.brandSoft, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', alignSelf: 'flex-start' }}>
+          <WiseHead size={phone ? 34 : 40} mood="wink" />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Txt weight="semibold" size={phone ? 16 : 18}>{tr('New here? Take a quick tour', 'Bago ka rito? Mag-tour saglit')}</Txt>
@@ -350,7 +350,7 @@ function WebDashboard({ data, tour }: { data: StudentDashboard; tour: TourContro
         </View>
 
         <FadeIn delay={160} style={twoColumns ? { width: sideWidth, gap: 24 } : { width: '100%', gap: 24 }}>
-          <SideCard data={data} allDone={s.allDone} />
+          <SideCard data={data} allDone={s.allDone} onOpen={s.open} />
           <WiseTip />
         </FadeIn>
       </View>
@@ -450,25 +450,37 @@ function TeacherCard({ t, canEvaluate, onPress, compact }: { t: Teacher; canEval
   );
 }
 
-function SideCard({ data, allDone, phone }: { data: StudentDashboard; allDone: boolean; phone?: boolean }) {
+function SideCard({ data, allDone, phone, onOpen }: { data: StudentDashboard; allDone: boolean; phone?: boolean; onOpen: (t: Teacher) => void }) {
   const pp = data.period?.is_open ? periodProgress(data.period.opens_at, data.period.closes_at) : null;
   return (
-    <View style={[{ backgroundColor: colors.card, borderRadius: 40, paddingHorizontal: phone ? 24 : 34, paddingVertical: phone ? 28 : 40, gap: 40 }, shadowStyle('soft')]}>
-      <View style={{ gap: phone ? 22 : 30 }}>
+    <View style={[{ backgroundColor: colors.card, borderRadius: radius.xl, paddingHorizontal: phone ? space.xl : space.xxl, paddingVertical: phone ? space.xl : space.xxl, gap: space.xxl }, shadowStyle('soft')]}>
+      <View style={{ gap: phone ? space.lg : space.xl }}>
         <Txt weight="semibold" size={phone ? 24 : 28} accessibilityRole="header">{tr('My Subjects', 'Mga Subject Ko')}</Txt>
         {data.subjects.length === 0 && <EmptyNote text={tr('Your subjects will show here once your section has classes.', 'Lalabas dito ang mga subject mo kapag may klase na ang section mo.')} />}
-        {data.subjects.map((sub) => (
-          <View key={`${sub.code}-${sub.name}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
-            <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="book" size={22} color="#FFFFFF" />
-            </View>
-            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-              <Txt weight="semibold" size={phone ? 16 : 18} numberOfLines={2}>{sub.name}</Txt>
-              <Txt size={15} color={colors.textSoft}>{`${sub.units} ${tr('Units', 'Yunit')}${sub.code ? ` · ${sub.code}` : ''}`}</Txt>
-            </View>
-            <Icon name="more" size={22} color={colors.text} />
-          </View>
-        ))}
+        {data.subjects.map((sub) => {
+          const t = data.teachers.find((x) => x.subject.name === sub.name && (x.subject.code ?? null) === (sub.code ?? null));
+          const done = t?.status === 'completed';
+          const blocked = !t || (t.status === 'pending' && !data.period?.is_open);
+          return (
+            <Pressable
+              key={`${sub.code}-${sub.name}`}
+              accessibilityRole="button"
+              accessibilityLabel={t ? `${sub.name}, ${t.teacher.name}, ${done ? tr('evaluated', 'tapos na') : tr('not yet evaluated', 'hindi pa na-evaluate')}` : sub.name}
+              disabled={blocked && !done}
+              onPress={() => t && onOpen(t)}
+              style={({ hovered, pressed }: { hovered?: boolean; pressed?: boolean }) => ({ flexDirection: 'row', alignItems: 'center', gap: 16, padding: 10, margin: -10, borderRadius: 22, backgroundColor: hovered && !(blocked && !done) ? colors.surface : 'transparent', transform: [{ scale: pressed ? 0.98 : 1 }] })}
+            >
+              <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: done ? colors.successBg : colors.navy, alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name={done ? 'check' : 'book'} size={22} color={done ? colors.successFg : '#FFFFFF'} strokeWidth={done ? 2.6 : 1.7} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <Txt weight="semibold" size={phone ? 16 : 18} numberOfLines={2}>{sub.name}</Txt>
+                <Txt size={14} color={colors.textSoft} numberOfLines={1}>{[`${sub.units} ${tr('Units', 'Yunit')}`, sub.code, t ? shortTeacher(t.teacher.name) : null].filter(Boolean).join(' · ')}</Txt>
+              </View>
+              {t && !(blocked && !done) && <Icon name="chevronRight" size={18} color={colors.muted} strokeWidth={2.2} />}
+            </Pressable>
+          );
+        })}
       </View>
 
       <View style={{ gap: 26 }}>
@@ -518,17 +530,17 @@ function WiseTip() {
   if (!wise.data?.tip) return null;
 
   return (
-    <View style={{ backgroundColor: colors.frame, borderRadius: 32, padding: 26, paddingTop: 22, gap: 14, marginTop: 34 }}>
+    <View style={{ backgroundColor: colors.frame, borderRadius: 32, padding: 26, paddingTop: 22, gap: 14 }}>
       <View pointerEvents="none" style={{ position: 'absolute', right: -40, bottom: -50, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.05)' }} />
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12, minHeight: 70 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View style={{ flex: 1, gap: 2 }}>
           <View style={{ alignSelf: 'flex-start', height: 26, paddingHorizontal: 10, borderRadius: 999, backgroundColor: 'rgba(142,144,255,0.22)', justifyContent: 'center', marginBottom: 6 }}>
             <Txt weight="semibold" size={12} color="#C9CBFF" style={{ letterSpacing: 0.6 }}>{tr('TIP FOR YOU', 'TIP PARA SA IYO')}</Txt>
           </View>
           <Txt weight="semibold" size={19} color="#FFFFFF">{tr('Professor Wise says', 'Sabi ni Professor Wise')}</Txt>
         </View>
-        <View style={{ marginTop: -72, marginRight: -6 }}>
-          <Sticker name="idea" size={118} float />
+        <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="lightbulb" size={26} color="#FFD66B" strokeWidth={1.9} />
         </View>
       </View>
       <Txt size={16} color="#FFFFFF" style={{ lineHeight: 23 }}>{wise.data.tip}</Txt>
@@ -588,7 +600,7 @@ function Hero({ data, s, phone }: { data: StudentDashboard; s: DashState; phone?
 
   return (
     <FadeIn style={{ marginTop: phone ? 26 : 30 }}>
-      <View style={{ backgroundColor: urgentTone ? colors.urgentCard : colors.frame, borderRadius: phone ? 30 : 36, paddingVertical: phone ? 22 : 30, paddingLeft: phone ? 22 : 34, paddingRight: stickerSize * (phone ? 0.78 : 0.95), minHeight: phone ? 150 : 176, overflow: 'visible' }}>
+      <View style={{ backgroundColor: urgentTone ? colors.urgentCard : colors.frame, borderRadius: phone ? 30 : 36, paddingVertical: phone ? 22 : 30, paddingLeft: phone ? 22 : 34, paddingRight: phone ? stickerSize * 0.86 : stickerSize + 8, minHeight: phone ? 150 : 176, overflow: 'visible' }}>
         <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: phone ? 30 : 36, overflow: 'hidden' }}>
           <View style={{ position: 'absolute', right: -50, top: -70, width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(255,255,255,0.07)' }} />
           <View style={{ position: 'absolute', right: 90, bottom: -90, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.05)' }} />
@@ -787,7 +799,7 @@ function PhoneDashboard({ data, tour, refreshing, onRefresh }: { data: StudentDa
 
       <FadeIn delay={360} style={{ gap: 20 }}>
         <WiseTip />
-        <SideCard data={data} allDone={s.allDone} phone />
+        <SideCard data={data} allDone={s.allDone} phone onOpen={s.open} />
       </FadeIn>
     </ScrollView>
   );

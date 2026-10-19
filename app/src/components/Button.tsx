@@ -11,8 +11,9 @@ interface Props extends Omit<PressableProps, 'style'> {
 }
 
 export function Button({ title, variant = 'primary', size = 'md', loading, disabled, style, ...rest }: Props) {
-  const bg = variant === 'primary' ? (disabled ? colors.disabled : colors.navy) : variant === 'light' ? '#FFFFFF' : 'transparent';
-  const fg = variant === 'primary' ? '#FFFFFF' : variant === 'light' ? '#0B0B6E' : colors.accent;
+  // Disabled buttons are clearly grey (not a lighter navy that still looks clickable).
+  const bg = variant === 'primary' ? (disabled ? colors.track : colors.navy) : variant === 'light' ? '#FFFFFF' : 'transparent';
+  const fg = disabled && !loading ? colors.muted : variant === 'primary' ? '#FFFFFF' : variant === 'light' ? '#0B0B6E' : colors.accent;
 
   return (
     <Pressable
@@ -26,7 +27,7 @@ export function Button({ title, variant = 'primary', size = 'md', loading, disab
           borderRadius: 999,
           backgroundColor: bg,
           borderWidth: variant === 'outline' ? 1.5 : 0,
-          borderColor: colors.navy,
+          borderColor: disabled && !loading ? colors.border : colors.navy,
           alignItems: 'center',
           justifyContent: 'center',
           opacity: pressed ? 0.9 : 1,

@@ -50,6 +50,17 @@ const light = {
   accent: '#0B0B6E',
   /** The urgent welcome card (white text stays readable in both modes). */
   urgentCard: '#B93D0B',
+  /** Rating scale 1–5: a soft tint for each card and a strong colour when it's picked (white text on it). */
+  rate1Bg: '#FDE8E4',
+  rate1: '#C0392B',
+  rate2Bg: '#FFEEDF',
+  rate2: '#C2540F',
+  rate3Bg: '#ECEEF6',
+  rate3: '#4A4F75',
+  rate4Bg: '#E3F4EA',
+  rate4: '#1E7B4D',
+  rate5Bg: '#D5F2E1',
+  rate5: '#11613D',
 };
 
 export type Palette = typeof light;
@@ -93,6 +104,16 @@ const dark: Palette = {
   brandSoft: '#23245A',
   accent: '#A5A8FF',
   urgentCard: '#A8380A',
+  rate1Bg: '#3D1A17',
+  rate1: '#C2412F',
+  rate2Bg: '#3D2410',
+  rate2: '#B85412',
+  rate3Bg: '#24264A',
+  rate3: '#4D5290',
+  rate4Bg: '#123A28',
+  rate4: '#1F7A4C',
+  rate5Bg: '#0F3D27',
+  rate5: '#16804F',
 };
 
 export const palettes = { light, dark };

@@ -22,6 +22,9 @@ interface UIState {
   toasts: Toast[];
   /** The opening intro is on screen (the guided tour waits for it). */
   introOpen: boolean;
+  /** Computers: the Professor Wise chat panel is open. */
+  wiseOpen: boolean;
+  setWiseOpen: (v: boolean) => void;
   setIntroOpen: (v: boolean) => void;
   setScrolling: (v: boolean) => void;
   addHider: (d: 1 | -1) => void;
@@ -38,6 +41,8 @@ export const useUI = create<UIState>((set) => ({
   notificationsOpen: false,
   toasts: [],
   introOpen: false,
+  wiseOpen: false,
+  setWiseOpen: (wiseOpen) => set({ wiseOpen }),
   setIntroOpen: (introOpen) => set({ introOpen }),
   setScrolling: (scrolling) => set({ scrolling }),
   addHider: (d) => set((s) => ({ launcherHiders: Math.max(0, s.launcherHiders + d) })),

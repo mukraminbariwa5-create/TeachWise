@@ -39,6 +39,28 @@ class RatingStats
         ];
     }
 
+    /**
+     * How many answers gave each score, 1 to 5, across every rating question.
+     *
+     * @return array<string, int>
+     */
+    public function distribution(): array
+    {
+        $counts = EvaluationAnswer::query()
+            ->whereIn('evaluation_id', $this->evaluations()->select('id'))
+            ->whereNotNull('rating')
+            ->groupBy('rating')
+            ->selectRaw('rating, COUNT(*) as total')
+            ->pluck('total', 'rating');
+
+        $out = [];
+        foreach (range(1, 5) as $n) {
+            $out[(string) $n] = (int) ($counts[$n] ?? 0);
+        }
+
+        return $out;
+    }
+
     /** Average per question category, in form order. */
     public function byCriteria(): Collection
     {
@@ -57,6 +79,20 @@ class RatingStats
                 'average' => round((float) $r->avg_rating, 2),
                 'responses' => (int) $r->total,
             ]);
+    }
+
+    /** Average per English category name (for exports, which shouldn't change with the app language). */
+    public function byCriteriaEnglish(): array
+    {
+        return EvaluationAnswer::query()
+            ->join('questions', 'questions.id', '=', 'evaluation_answers.question_id')
+            ->whereIn('evaluation_answers.evaluation_id', $this->evaluations()->select('id'))
+            ->whereNotNull('evaluation_answers.rating')
+            ->groupBy('questions.category', 'questions.text')
+            ->selectRaw('COALESCE(questions.category, questions.text) as category, AVG(evaluation_answers.rating) as avg_rating')
+            ->get()
+            ->map(fn ($r) => ['category' => $r->category, 'average' => round((float) $r->avg_rating, 2)])
+            ->all();
     }
 
     /** Most recent written comments, without any evaluator identity. */

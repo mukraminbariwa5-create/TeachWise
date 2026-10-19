@@ -40,6 +40,25 @@ class DashboardController extends Controller
                 'average' => $t->average !== null ? round((float) $t->average, 2) : null,
             ]);
 
+        // Average student rating and number of answers in each period that has started, oldest first,
+        // so the overview can show "up 0.2 since Prelim" and a small trend line.
+        $trend = EvaluationPeriod::where('type', 'student')
+            ->where('opens_at', '<=', now())
+            ->orderBy('opens_at')
+            ->get()
+            ->map(function (EvaluationPeriod $p) use ($evaluations) {
+                $avg = $evaluations()->where('evaluation_period_id', $p->id)->avg('overall_rating');
+
+                return [
+                    'period_id' => $p->id,
+                    'name' => $p->name,
+                    'submitted' => $evaluations()->where('evaluation_period_id', $p->id)->count(),
+                    'average' => $avg !== null ? round((float) $avg, 2) : null,
+                ];
+            })
+            ->filter(fn ($row) => $row['submitted'] > 0)
+            ->values();
+
         $bySection = $this->completionBySection($period, $semester);
         $expected = $bySection->sum('expected');
         $done = $bySection->sum('completed');
@@ -60,6 +79,7 @@ class DashboardController extends Controller
                 'by_section' => $bySection->values(),
             ],
             'faculty' => $faculty,
+            'trend' => $trend,
             'periods' => EvaluationPeriod::orderBy('opens_at')->get()->map(fn ($p) => Present::period($p)),
         ]);
     }

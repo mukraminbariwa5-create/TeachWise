@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { Modal, Pressable, RefreshControl, ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { create } from 'zustand';
 import { tr } from '@/lib/i18n';
 import { tap } from '@/lib/ui';
@@ -265,17 +266,123 @@ export function EmptyState({ mood = 'think', title, message, action }: { mood?: 
 }
 
 /** Number tile for dashboards. */
-export function StatCard({ label, value, hint, icon, tone = 'navy' }: { label: string; value: string; hint?: string; icon: IconName; tone?: 'navy' | 'green' | 'orange' | 'brand' }) {
+export interface StatDelta {
+  /** Change since the comparison point, e.g. +0.21. */
+  value: number;
+  /** What it's compared with, e.g. "since Prelim". */
+  caption: string;
+  /** How to print the change (default: one or two decimals). */
+  format?: (n: number) => string;
+}
+
+/**
+ * A number tile: icon, value, label, then the most useful extra it has:
+ * a trend chip ("▲ 0.47 since Prelim"), a progress bar, or a plain hint.
+ * `empty` replaces a bare dash with a friendly line. `compact` is the smaller phone version.
+ */
+export function StatCard({
+  label,
+  value,
+  hint,
+  icon,
+  tone = 'navy',
+  delta,
+  spark,
+  progress,
+  empty,
+  compact,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  icon: IconName;
+  tone?: 'navy' | 'green' | 'orange' | 'brand';
+  delta?: StatDelta | null;
+  /** Small trend line from oldest to newest (shown with 2+ points). */
+  spark?: number[];
+  /** 0–1, drawn as a thin bar under the value. */
+  progress?: number;
+  /** Shown instead of the hint when there's no value yet, e.g. "No reviews yet". */
+  empty?: string;
+  compact?: boolean;
+}) {
   const bg = { navy: colors.chip, green: colors.successBg, orange: colors.pendingBg, brand: colors.brandSoft }[tone];
   const fg = { navy: colors.accent, green: colors.successFg, orange: colors.pendingFg, brand: colors.accent }[tone];
+  const isEmpty = !!empty && (value === '—' || value === '-' || value === '');
+  const up = delta ? delta.value > 0.004 : false;
+  const down = delta ? delta.value < -0.004 : false;
+  const fmt = delta?.format ?? ((n: number) => Math.abs(n).toFixed(Math.abs(n) < 0.1 ? 2 : 1).replace(/\.0$/, ''));
+  const a11y = `${label}: ${isEmpty ? empty : value}${delta ? `, ${up ? tr('up', 'tumaas') : down ? tr('down', 'bumaba') : tr('no change', 'walang pagbabago')} ${fmt(delta.value)} ${delta.caption}` : ''}${hint && !isEmpty ? `. ${hint}` : ''}`;
+
   return (
-    <View style={[{ flex: 1, minWidth: 150, backgroundColor: colors.card, borderRadius: 24, padding: space.lg, gap: space.xs }, shadowStyle('soft')]} accessible accessibilityLabel={`${label}: ${value}${hint ? `. ${hint}` : ''}`}>
-      <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-        <Icon name={icon} size={20} color={fg} strokeWidth={1.9} />
+    <View
+      style={[
+        compact
+          ? { width: 172, backgroundColor: colors.card, borderRadius: 22, padding: space.md, gap: 6 }
+          : { flex: 1, minWidth: 170, backgroundColor: colors.card, borderRadius: 24, padding: space.lg, gap: space.xs },
+        shadowStyle('soft'),
+      ]}
+      accessible
+      accessibilityLabel={a11y}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ width: compact ? 34 : 40, height: compact ? 34 : 40, borderRadius: compact ? 12 : 14, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name={icon} size={compact ? 17 : 20} color={fg} strokeWidth={1.9} />
+        </View>
+        <View style={{ flex: 1 }} />
+        {spark && spark.length >= 2 && !compact ? <Sparkline values={spark} color={down ? colors.urgentFg : colors.successFg} /> : null}
       </View>
-      <Txt weight="bold" size={text.h1} style={{ letterSpacing: -0.5 }}>{value}</Txt>
-      <Txt weight="medium" size={text.body} color={colors.textSoft}>{label}</Txt>
-      {hint ? <Txt size={text.small} color={colors.muted}>{hint}</Txt> : null}
+      {isEmpty ? (
+        <Txt weight="semibold" size={compact ? text.title : text.h3} color={colors.muted} style={{ marginTop: compact ? 2 : 6, marginBottom: compact ? 0 : 2 }}>{empty}</Txt>
+      ) : (
+        <Txt weight="bold" size={compact ? text.h2 : text.h1} style={{ letterSpacing: -0.5 }}>{value}</Txt>
+      )}
+      <Txt weight="medium" size={compact ? text.small : text.body} color={colors.textSoft} numberOfLines={compact ? 1 : 2}>{label}</Txt>
+      {progress !== undefined && !isEmpty ? (
+        <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.track, overflow: 'hidden', marginTop: 4 }}>
+          <View style={{ width: `${Math.round(Math.max(0, Math.min(1, progress)) * 100)}%`, height: 6, borderRadius: 3, backgroundColor: fg }} />
+        </View>
+      ) : null}
+      {delta ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+          <View style={{ height: 24, paddingHorizontal: 8, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: up ? colors.successBg : down ? colors.urgentBg : colors.track }}>
+            <Icon name={up ? 'trendUp' : down ? 'trendDown' : 'arrowUp'} size={13} color={up ? colors.successFg : down ? colors.urgentFg : colors.muted} strokeWidth={2.4} />
+            <Txt weight="bold" size={text.caption} color={up ? colors.successFg : down ? colors.urgentFg : colors.muted}>{up || down ? fmt(delta.value) : tr('Same', 'Pareho')}</Txt>
+          </View>
+          <Txt size={text.small} color={colors.muted} numberOfLines={1}>{delta.caption}</Txt>
+        </View>
+      ) : hint && !isEmpty ? (
+        <Txt size={text.small} color={colors.muted} numberOfLines={compact ? 1 : 2}>{hint}</Txt>
+      ) : null}
+    </View>
+  );
+}
+
+/** A row of StatCards: wraps on computers, scrolls sideways on phones so the lists below show up sooner. */
+export function StatRow({ children }: { children: ReactNode }) {
+  const phone = useLayoutSize() === 'phone';
+  if (!phone) return <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>{children}</View>;
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -space.lg }} contentContainerStyle={{ gap: space.sm, paddingHorizontal: space.lg, paddingVertical: 6 }}>
+      {children}
+    </ScrollView>
+  );
+}
+
+/** A tiny line chart for a StatCard. */
+export function Sparkline({ values, color, width = 84, height = 32 }: { values: number[]; color: string; width?: number; height?: number }) {
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const pts = values.map((v, i) => [(i / (values.length - 1)) * (width - 6) + 3, height - 4 - ((v - min) / span) * (height - 8)] as const);
+  const d = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ');
+  const last = pts[pts.length - 1];
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Svg width={width} height={height}>
+        <Path d={d} stroke={color} strokeWidth={2.4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <Circle cx={last[0]} cy={last[1]} r={3.5} fill={color} />
+      </Svg>
     </View>
   );
 }
