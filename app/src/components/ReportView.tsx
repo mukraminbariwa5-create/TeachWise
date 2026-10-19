@@ -96,7 +96,7 @@ export function ReportView({ report, printable, schoolName }: { report: FacultyR
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <View style={{ flex: 1, minWidth: 150, gap: 2 }}>
-      <Txt size={text.caption} color={colors.muted} style={{ textTransform: 'uppercase', letterSpacing: 0.6 }}>{label}</Txt>
+      <Txt size={text.small} color={colors.muted}>{label}</Txt>
       <Txt weight="semibold" size={text.bodyLg}>{value}</Txt>
     </View>
   );
@@ -116,11 +116,17 @@ function StudentSummary({ report }: { report: FacultyReport }) {
     <View style={{ flex: 2, minWidth: 300, backgroundColor: colors.card, borderRadius: 22, padding: space.lg, borderWidth: 1, borderColor: colors.borderSoft, flexDirection: 'row', flexWrap: 'wrap', gap: space.xl }}>
       <View style={{ minWidth: 170, gap: 2, justifyContent: 'center' }}>
         <Txt weight="medium" size={text.body} color={colors.textSoft}>{tr('Student rating', 'Rating ng estudyante')}</Txt>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-          <Txt weight="bold" size={44} style={{ letterSpacing: -1 }}>{formatRating(avg)}</Txt>
-          <Txt size={text.body} color={colors.muted}>/ 5</Txt>
-        </View>
-        <Txt size={text.small} color={colors.muted}>{tr(`${s.overall.responses} responses`, `${s.overall.responses} sagot`)}</Txt>
+        {avg === null ? (
+          <Txt weight="semibold" size={text.h3} color={colors.muted} style={{ marginVertical: space.xs }}>
+            {s.overall.responses > 0 ? tr('Hidden until more students answer', 'Nakatago hanggang mas marami ang sumagot') : tr('No student answers yet', 'Wala pang sagot mula sa estudyante')}
+          </Txt>
+        ) : (
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+            <Txt weight="bold" size={44} style={{ letterSpacing: -1 }}>{formatRating(avg)}</Txt>
+            <Txt size={text.body} color={colors.muted}>/ 5</Txt>
+          </View>
+        )}
+        <Txt size={text.small} color={colors.muted}>{tr(`${s.overall.responses} response${s.overall.responses === 1 ? '' : 's'}`, `${s.overall.responses} sagot`)}</Txt>
         {diff !== null && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: space.xs }}>
             <View style={{ height: 24, paddingHorizontal: 8, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: diff >= 0.05 ? colors.successBg : diff <= -0.05 ? colors.urgentBg : colors.track }}>
@@ -134,7 +140,7 @@ function StudentSummary({ report }: { report: FacultyReport }) {
       </View>
       {dist && total > 0 && (
         <View style={{ flex: 1, minWidth: 240, gap: 8, justifyContent: 'center' }} accessible accessibilityLabel={tr('How students answered', 'Paano sumagot ang mga estudyante')}>
-          <Txt weight="semibold" size={text.small} color={colors.muted} style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>{tr('How students answered', 'Paano sumagot ang mga estudyante')}</Txt>
+          <Txt weight="medium" size={text.small} color={colors.textSoft}>{tr('How students answered', 'Paano sumagot ang mga estudyante')}</Txt>
           {['5', '4', '3', '2', '1'].map((k) => {
             const n = dist[k] ?? 0;
             const pct = n / total;

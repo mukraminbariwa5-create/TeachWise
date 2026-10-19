@@ -109,7 +109,7 @@ export function SignInForm({ schoolId, onNeedSchool }: { schoolId?: number | nul
         returnKeyType="next"
         blurOnSubmit={false}
         onSubmitEditing={() => passwordRef.current?.focus()}
-        onFocus={() => cue({ mood: 'wink', line: tr('Your **username** or your **student ID** both work.', 'Puwede ang **username** o **student ID** mo.') })}
+        onFocus={() => cue({ mood: 'wink', line: tr('Your username or your student ID both work.', 'Puwede ang username o student ID mo.') })}
         state={error ? 'invalid' : 'idle'}
         shake={shake}
       />
@@ -152,7 +152,7 @@ export function SignInForm({ schoolId, onNeedSchool }: { schoolId?: number | nul
       )}
 
       <Button
-        title={locked ? tr(`Locked · ${mmss(lockedFor)}`, `Naka-lock · ${mmss(lockedFor)}`) : tr('Sign in  →', 'Mag-sign in  →')}
+        title={locked ? tr(`Locked · ${mmss(lockedFor)}`, `Naka-lock · ${mmss(lockedFor)}`) : tr('Sign in', 'Mag-sign in')}
         size="lg"
         onPress={submit}
         loading={busy}

@@ -47,7 +47,7 @@ export function OfflineBanner() {
         </View>
         <Txt weight="semibold" size={14} color="#FFFFFF" style={{ flex: 1 }}>
           {back
-            ? tr('Back online! Refreshing…', 'Online na ulit! Nire-refresh…')
+            ? tr('Back online. Refreshing…', 'Online na ulit. Nire-refresh…')
             : tr('You’re offline. Your answers are saved and will be ready when you reconnect.', 'Offline ka. Naka-save ang mga sagot mo at handa kapag naka-connect ka ulit.')}
         </Txt>
         {!back && (

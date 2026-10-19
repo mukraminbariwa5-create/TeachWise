@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { api, ApiError } from '@/api/client';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/form/Field';
-import { Icon, type IconName } from '@/components/Icon';
 import { PublicPage } from '@/components/PublicPage';
 import { Txt } from '@/components/Txt';
 import { WiseMascot } from '@/components/WiseMascot';
@@ -72,30 +71,19 @@ export default function RegisterSchool() {
     );
   }
 
-  const perks: [IconName, string][] = [
-    ['shield', tr('Anonymous by design, Data Privacy Act ready', 'Anonymous, handa sa Data Privacy Act')],
-    ['users', tr('Students join with your approved ID list', 'Sumasali ang estudyante gamit ang aprubadong ID list ninyo')],
-    ['barChart', tr('Reports per teacher, department and section', 'Mga report bawat guro, departamento at section')],
-  ];
-
   return (
     <PublicPage title={tr('Bring TeachWise to your school', 'Dalhin ang TeachWise sa paaralan mo')} subtitle={tr('For registrars, QA offices and deans. Free to start, set up in an afternoon.', 'Para sa registrar, QA office at dean. Libreng simulan, ma-set up sa isang hapon.')} mood="cheer" maxWidth={640}>
-      <View style={{ gap: space.xs }}>
-        {perks.map(([icon, label]) => (
-          <View key={label} style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-            <Icon name={icon} size={18} color={colors.successFg} strokeWidth={2} />
-            <Txt size={text.body} color={colors.textSoft} style={{ flex: 1 }}>{label}</Txt>
-          </View>
-        ))}
-      </View>
+      <Txt size={text.body} color={colors.textSoft} style={{ lineHeight: 22 }}>
+        {tr('Students sign up with IDs from a list you approve, rate their teachers anonymously, and you get a report for every teacher, department and section. Answers follow the Data Privacy Act.', 'Nagsa-sign up ang mga estudyante gamit ang mga ID mula sa listahang inaprubahan ninyo, nire-rate nila ang mga guro nang anonymous, at may report kayo para sa bawat guro, departamento at section. Sumusunod ang mga sagot sa Data Privacy Act.')}
+      </Txt>
 
-      <Txt weight="semibold" size={text.small} color={colors.muted} style={{ letterSpacing: 0.8, textTransform: 'uppercase' }}>{tr('The school', 'Ang paaralan')}</Txt>
+      <Txt weight="semibold" size={text.small} color={colors.muted}>{tr('The school', 'Ang paaralan')}</Txt>
       <Field label={tr('School name', 'Pangalan ng paaralan')} icon="book" value={f.name} onChangeText={set('name')} placeholder="Mindanao State University – Sulu" state={state('name')} message={err('name') || undefined} max={150} />
       <Field label={tr('Short name (optional)', 'Maikling pangalan (opsyonal)')} icon="edit" value={f.short_name} onChangeText={set('short_name')} placeholder="MSU-Sulu" max={40} hint={tr('Shown in the app and used for your join code.', 'Makikita sa app at gagamitin sa join code.')} />
       <Field label={tr('City / province', 'Lungsod / probinsya')} icon="globe" value={f.location} onChangeText={set('location')} placeholder="Jolo, Sulu" state={state('location')} message={err('location') || undefined} />
       <Field label={tr('About how many students? (optional)', 'Mga ilang estudyante? (opsyonal)')} icon="users" value={f.student_count} onChangeText={set('student_count')} keyboardType="number-pad" placeholder="1500" />
 
-      <Txt weight="semibold" size={text.small} color={colors.muted} style={{ letterSpacing: 0.8, textTransform: 'uppercase' }}>{tr('You', 'Ikaw')}</Txt>
+      <Txt weight="semibold" size={text.small} color={colors.muted}>{tr('You', 'Ikaw')}</Txt>
       <Field label={tr('Your full name', 'Buong pangalan mo')} icon="user" value={f.contact_name} onChangeText={set('contact_name')} autoComplete="name" state={state('contact_name')} message={err('contact_name') || undefined} />
       <Field label={tr('Your position', 'Posisyon mo')} icon="clipboard" value={f.contact_position} onChangeText={set('contact_position')} placeholder={tr('Registrar', 'Registrar')} state={state('contact_position')} message={err('contact_position') || undefined} />
       <Field label={tr('Work email', 'Work email')} icon="mail" value={f.contact_email} onChangeText={set('contact_email')} keyboardType="email-address" autoCapitalize="none" autoComplete="email" state={state('contact_email')} message={err('contact_email') || undefined} />

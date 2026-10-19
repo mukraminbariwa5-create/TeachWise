@@ -9,7 +9,7 @@ import { useUI } from '@/lib/ui';
 /** Built when rendered, so the labels follow the chosen language. */
 const navItems = (): NavItem[] => [
   { href: '/student', icon: 'home', label: tr('Home', 'Home') },
-  { href: '/student/wise', icon: 'chat', label: tr('Ask Wise', 'Tanong'), tourId: 'ask' },
+  { href: '/student/wise', icon: 'glasses', label: tr('Ask Wise', 'Tanong'), tourId: 'ask' },
   { href: '/student/history', icon: 'clock', label: tr('History', 'Kasaysayan') },
 ];
 
@@ -45,8 +45,8 @@ function StudentShell() {
     if (path === '/student') {
       if (!d) return null;
       const pending = d.progress.total - d.progress.completed;
-      if (!d.period) return { text: tr('No evaluation is open yet. I’ll **let you know** when one starts.', 'Wala pang bukas na evaluation. **Sasabihan kita** kapag nagsimula na.'), mood: 'working' };
-      if (pending === 0) return { text: tr('All done! **Thank you** for helping your teachers improve.', 'Tapos na lahat! **Salamat** sa pagtulong sa mga guro mo.'), mood: 'party' };
+      if (!d.period) return { text: tr('No evaluation is open yet. I’ll let you know when one starts.', 'Wala pang bukas na evaluation. Sasabihan kita kapag nagsimula na.'), mood: 'working' };
+      if (pending === 0) return { text: tr('All done! Thank you for helping your teachers improve.', 'Tapos na lahat! Salamat sa pagtulong sa mga guro mo.'), mood: 'party' };
       return {
         text: tr(
           `You have **${pending} teacher${pending > 1 ? 's' : ''}** left. Tap **Evaluate Now** and I’ll walk you through it.`,
@@ -55,8 +55,8 @@ function StudentShell() {
         mood: 'lecture',
       };
     }
-    if (path.startsWith('/student/evaluate')) return { text: tr('Rate what you **really** experienced. Your teacher **never sees your name**.', 'I-rate ang **totoong** naranasan mo. **Hindi makikita** ng guro ang pangalan mo.'), mood: 'teach' };
-    if (path.startsWith('/student/history')) return { text: tr('These are the evaluations you’ve **sent**. They can’t be changed, to keep things fair.', 'Ito ang mga evaluation na **naipasa** mo. Hindi na ito mababago para patas.'), mood: 'writing' };
+    if (path.startsWith('/student/evaluate')) return { text: tr('Rate what you actually experienced. Your teacher **never sees your name**.', 'I-rate ang totoong naranasan mo. **Hindi makikita** ng guro ang pangalan mo.'), mood: 'teach' };
+    if (path.startsWith('/student/history')) return { text: tr('These are the evaluations you’ve sent. They can’t be changed, to keep things fair.', 'Ito ang mga evaluation na naipasa mo. Hindi na ito mababago para patas.'), mood: 'writing' };
     if (path.startsWith('/student/settings')) return { text: tr('Pick **dark mode**, **Filipino**, and which **notifications** you want here.', 'Dito pumili ng **dark mode**, **Filipino**, at kung anong **notifications** ang gusto mo.'), mood: 'wink' };
     return null;
   };

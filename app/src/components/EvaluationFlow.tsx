@@ -182,12 +182,12 @@ export function EvaluationFlow({
         clearDraft(id);
         qc.invalidateQueries({ queryKey: ['drafts'] });
         setDone(true);
-        toast({ title: tr('Evaluation sent', 'Naipadala ang evaluation'), body: tr(`Thank you! ${teacher.name} will only see combined, anonymous results.`, `Salamat! Pinagsama-sama at anonymous na resulta lang ang makikita ni ${teacher.name}.`), tone: 'success', mood: 'proud' });
+        toast({ title: tr('Evaluation sent', 'Naipadala ang evaluation'), body: tr(`${teacher.name} will only see combined, anonymous results.`, ` Pinagsama-sama at anonymous na resulta lang ang makikita ni ${teacher.name}.`), tone: 'success', mood: 'proud' });
       }
     );
   };
 
-  const blocked = already_submitted ? tr('You already evaluated this teacher for this period. Thank you!', 'Na-evaluate mo na ang gurong ito ngayong period. Salamat!') : !period?.is_open ? tr('The evaluation period is closed right now.', 'Sarado ang evaluation ngayon.') : null;
+  const blocked = already_submitted ? tr('You already evaluated this teacher for this period.', 'Na-evaluate mo na ang gurong ito ngayong period.') : !period?.is_open ? tr('The evaluation period is closed right now.', 'Sarado ang evaluation ngayon.') : null;
   const stage = done ? 3 : step === reviewStep ? 2 : step === commentStep ? 1 : 0;
 
   return (
@@ -221,7 +221,7 @@ export function EvaluationFlow({
               <WiseMascot size={wide ? 210 : 170} mood="party" />
               <Confetti spread={wide ? 260 : 200} />
             </View>
-            <Txt weight="bold" size={26} accessibilityRole="header" style={{ textAlign: 'center' }}>{tr('Evaluation submitted!', 'Naipasa ang evaluation!')}</Txt>
+            <Txt weight="bold" size={26} accessibilityRole="header" style={{ textAlign: 'center' }}>{tr('Evaluation sent', 'Naipadala ang evaluation')}</Txt>
             <Txt size={16} color={colors.textSoft} style={{ textAlign: 'center', lineHeight: 24, maxWidth: 420 }}>
               {tr('Thank you. Your answers are anonymous and help your teacher improve.', 'Salamat. Anonymous ang mga sagot mo at makakatulong ito sa guro mo.')}
             </Txt>
@@ -453,7 +453,7 @@ function Review({
               style={({ hovered }: { hovered?: boolean }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, backgroundColor: hovered ? colors.surface : colors.card, borderWidth: 1, borderColor: colors.borderSoft })}
             >
               <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                {q.category ? <Txt weight="semibold" size={12} color={colors.muted} style={{ letterSpacing: 0.6 }}>{q.category.toUpperCase()}</Txt> : null}
+                {q.category ? <Txt weight="semibold" size={13} color={colors.muted}>{q.category}</Txt> : null}
                 <Txt size={15} numberOfLines={2} style={{ lineHeight: 20 }}>{q.text}</Txt>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 6, paddingRight: 12, height: 42, borderRadius: 999, backgroundColor: colors.chip }}>
@@ -485,13 +485,13 @@ function Review({
 }
 
 const reactions = (): Record<string, { mood: Mood; line: string }> => ({
-  none: { mood: 'think', line: tr('Take your time. Pick what **really** happened in class.', 'Dahan-dahan lang. Piliin ang **totoong** nangyari sa klase.') },
-  1: { mood: 'sad', line: tr('Thanks for being **honest**. That helps the most.', 'Salamat sa pagiging **tapat**. Iyan ang pinakamakakatulong.') },
-  2: { mood: 'worried', line: tr('Got it, **something to work on**.', 'Sige, **may dapat pang ayusin**.') },
-  3: { mood: 'think', line: tr('Okay, **somewhere in the middle**.', 'Okay, **nasa gitna**.') },
-  4: { mood: 'proud', line: tr('Nice! That’s **good to hear**.', 'Ayos! **Masarap pakinggan** iyan.') },
-  5: { mood: 'cheer', line: tr('**Excellent!** Your teacher will be glad to know.', '**Napakahusay!** Matutuwa ang guro mo.') },
-  comment: { mood: 'writing', line: tr('Any comments? It’s **optional** and still anonymous.', 'May komento ka ba? **Opsyonal** ito at anonymous pa rin.') },
+  none: { mood: 'think', line: tr('Take your time. Pick what really happened in class.', 'Dahan-dahan lang. Piliin ang totoong nangyari sa klase.') },
+  1: { mood: 'sad', line: tr('Thanks for being honest. That helps the most.', 'Salamat sa pagiging tapat. Iyan ang pinakamakakatulong.') },
+  2: { mood: 'worried', line: tr('Got it, something to work on.', 'Sige, may dapat pang ayusin.') },
+  3: { mood: 'think', line: tr('Okay, somewhere in the middle.', 'Okay, nasa gitna.') },
+  4: { mood: 'proud', line: tr('Nice! That’s good to hear.', 'Ayos! Masarap pakinggan iyan.') },
+  5: { mood: 'cheer', line: tr('Excellent! Your teacher will be glad to know.', 'Napakahusay! Matutuwa ang guro mo.') },
+  comment: { mood: 'writing', line: tr('Any comments? It’s optional and still anonymous.', 'May komento ka ba? Opsyonal ito at anonymous pa rin.') },
 });
 
 /** Professor Wise reacting to the rating the student just picked. */

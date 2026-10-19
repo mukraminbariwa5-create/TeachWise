@@ -133,7 +133,7 @@ export function Shell({ nav, settingsItem, phoneTabs, wise, tipFor, hideTabsOn, 
                 return (
                   <View key={item.label} style={{ alignItems: expanded ? 'stretch' : 'center' }}>
                     {heading && (
-                      <Txt weight="semibold" size={11} color={colors.onFrameMuted} style={{ letterSpacing: 1.1, textTransform: 'uppercase', marginTop: i === 0 ? 0 : 14, marginBottom: 6, marginLeft: 16, opacity: 0.8 }}>{heading}</Txt>
+                      <Txt weight="semibold" size={11} color={colors.onFrameMuted} style={{ marginTop: i === 0 ? 0 : 16, marginBottom: 4, marginLeft: 14 }}>{heading}</Txt>
                     )}
                     {divider && <View style={{ width: 28, height: 1, backgroundColor: 'rgba(255,255,255,0.18)', marginBottom: compact ? 10 : 14 }} />}
                     {item.tourId ? <TourTarget id={item.tourId}>{el}</TourTarget> : el}
@@ -300,7 +300,6 @@ function SchoolRow({ school }: { school: SchoolInfo }) {
     <View accessible accessibilityLabel={tr(`School: ${school.name}`, `Paaralan: ${school.name}`)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, marginBottom: 10, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.07)' }}>
       <SchoolBadge school={school} size={38} onDark />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Txt size={11} color={colors.onFrameMuted} style={{ letterSpacing: 0.8 }}>{tr('SCHOOL', 'PAARALAN')}</Txt>
         <Txt weight="semibold" size={14} color="#FFFFFF" numberOfLines={2}>{school.name}</Txt>
       </View>
     </View>

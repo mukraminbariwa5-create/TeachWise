@@ -9,7 +9,7 @@ import { InviteCodeSheet } from '@/components/InviteCodeSheet';
 import { SchoolBadge } from '@/components/SchoolBadge';
 import { ScreenState } from '@/components/ScreenState';
 import { Txt } from '@/components/Txt';
-import { confirm, ListRow, Pill, Screen, Section, Sheet, StatCard } from '@/components/ui';
+import { confirm, ListRow, Pill, Screen, Section, Sheet, StatCard, StatRow } from '@/components/ui';
 import { ago, shortDate } from '@/lib/format';
 import { tr } from '@/lib/i18n';
 import { toast, useScrollHide } from '@/lib/ui';
@@ -78,11 +78,11 @@ export default function PlatformSchool() {
       )}
 
       {s.status !== 'pending' && (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>
+        <StatRow>
           <StatCard icon="users" label={tr('Students', 'Estudyante')} value={String(d.stats.students)} />
           <StatCard icon="book" tone="brand" label={tr('Teachers', 'Guro')} value={String(d.stats.teachers)} />
           <StatCard icon="checkCircle" tone="green" label={tr('Evaluations', 'Evaluation')} value={String(d.stats.evaluations)} hint={d.stats.last_active ? tr(`Last active ${ago(d.stats.last_active)}`, `Huling aktibo ${ago(d.stats.last_active)}`) : undefined} />
-        </View>
+        </StatRow>
       )}
 
       <Section title={tr('Application', 'Aplikasyon')}>

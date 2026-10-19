@@ -159,7 +159,7 @@ export function TourOverlay() {
                 <WiseMascot size={96} mood={step.mood} float={false} shadow={false} />
               </View>
               <View style={{ flex: 1, gap: 2, paddingBottom: 4 }}>
-                <Txt weight="semibold" size={12} color={colors.muted} style={{ letterSpacing: 1 }}>{tr(`STEP ${index + 1} OF ${steps.length}`, `HAKBANG ${index + 1} SA ${steps.length}`)}</Txt>
+                <Txt weight="medium" size={13} color={colors.muted}>{tr(`${index + 1} of ${steps.length}`, `${index + 1} sa ${steps.length}`)}</Txt>
                 <Txt weight="bold" size={19} accessibilityRole="header">{step.title}</Txt>
               </View>
             </View>
@@ -184,7 +184,7 @@ export function TourOverlay() {
                 onPress={next}
                 style={({ hovered, pressed }: { hovered?: boolean; pressed?: boolean }) => ({ height: 44, paddingHorizontal: 22, borderRadius: 999, backgroundColor: hovered ? colors.navyDeep : colors.navy, justifyContent: 'center', transform: [{ scale: pressed ? 0.96 : 1 }] })}
               >
-                <Txt weight="semibold" size={15} color="#FFFFFF">{last ? tr('Let’s go!', 'Tara na!') : tr('Next', 'Susunod')}</Txt>
+                <Txt weight="semibold" size={15} color="#FFFFFF">{last ? tr('Done', 'Tapos') : tr('Next', 'Susunod')}</Txt>
               </Pressable>
             </View>
           </View>

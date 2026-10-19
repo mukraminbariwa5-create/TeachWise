@@ -5,7 +5,7 @@ import { Icon } from '@/components/Icon';
 import { SchoolRow } from '@/components/SchoolRow';
 import { ScreenState } from '@/components/ScreenState';
 import { Txt } from '@/components/Txt';
-import { EmptyState, Panel, Screen, StatCard } from '@/components/ui';
+import { EmptyState, Panel, Screen, StatCard, StatRow } from '@/components/ui';
 import { tr } from '@/lib/i18n';
 import { useScrollHide } from '@/lib/ui';
 import { colors, space, text } from '@/theme';
@@ -23,12 +23,12 @@ export default function PlatformHome() {
         <ScreenState loading={q.isLoading} error={q.error} onRetry={() => q.refetch()} />
       ) : (
         <>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>
+          <StatRow>
             <StatCard icon="book" label={tr('Active schools', 'Aktibong paaralan')} value={String(d.schools.active)} hint={d.schools.suspended ? tr(`${d.schools.suspended} paused`, `${d.schools.suspended} naka-pause`) : undefined} />
             <StatCard icon="inbox" tone="orange" label={tr('Waiting for approval', 'Naghihintay ng apruba')} value={String(d.schools.pending)} />
             <StatCard icon="users" tone="brand" label={tr('Students', 'Mga estudyante')} value={d.people.students.toLocaleString()} hint={tr(`${d.people.teachers.toLocaleString()} teachers`, `${d.people.teachers.toLocaleString()} guro`)} />
             <StatCard icon="checkCircle" tone="green" label={tr('Evaluations, last 30 days', 'Evaluation, nakaraang 30 araw')} value={d.evaluations.last_30_days.toLocaleString()} hint={tr(`${d.evaluations.total.toLocaleString()} in total`, `${d.evaluations.total.toLocaleString()} lahat`)} />
-          </View>
+          </StatRow>
 
           <Panel title={tr('Applications', 'Mga aplikasyon')} subtitle={tr('Check that the person really works at the school before approving.', 'Siguraduhing nagtatrabaho talaga sa paaralan ang tao bago aprubahan.')} action={{ label: tr('All schools', 'Lahat'), onPress: () => router.push('/platform/schools') }}>
             {d.pending.length === 0 ? (

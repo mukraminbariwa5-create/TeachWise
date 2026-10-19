@@ -60,6 +60,18 @@ export default function AdminHome() {
   );
 }
 
+/**
+ * "Good morning, Hana" for a person; shared office accounts like "DSU Registrar" get
+ * "Good morning" plus the school or department, never "Good morning, DSU · DSU".
+ */
+function adminGreeting(name: string, place: string | null): string {
+  const hello = greetingWord().replace(',', '');
+  const first = firstName(name);
+  const office = !first || /^[A-Z0-9]{2,}$/.test(first) || (!!place && place.toLowerCase().startsWith(first.toLowerCase()));
+  if (office) return place ? `${hello}, ${place}` : hello;
+  return `${hello}, ${first}`;
+}
+
 /** Students, faculty, this period's answers (with progress) and the average rating (with its trend). */
 function Stats({ d, compact }: { d: AdminDashboard; compact: boolean }) {
   const trend = (d.trend ?? []).filter((t) => t.average !== null);
@@ -70,27 +82,27 @@ function Stats({ d, compact }: { d: AdminDashboard; compact: boolean }) {
   const expected = d.completion.expected;
   return (
     <StatRow>
-      <StatCard compact={compact} icon="users" label={tr('Students', 'Mga estudyante')} value={String(d.stats.students)} hint={tr('active accounts', 'aktibong account')} />
-      <StatCard compact={compact} icon="book" tone="brand" label={tr('Faculty', 'Faculty')} value={String(d.stats.faculty)} hint={tr('active teachers', 'aktibong guro')} />
+      <StatCard compact={compact} icon="users" label={tr('Students', 'Mga estudyante')} value={String(d.stats.students)} hint={tr('Active accounts', 'Aktibong account')} />
+      <StatCard compact={compact} icon="book" tone="brand" label={tr('Faculty', 'Faculty')} value={String(d.stats.faculty)} hint={tr('Active teachers', 'Aktibong guro')} />
       <StatCard
         compact={compact}
         icon="checkCircle"
         tone="green"
-        label={d.period ? tr(`Submitted · ${d.period.name}`, `Naipasa · ${d.period.name}`) : tr('Submitted', 'Naipasa')}
+        label={d.period ? tr(`Answers in ${d.period.name}`, `Mga sagot sa ${d.period.name}`) : tr('Answers', 'Mga sagot')}
         value={String(d.stats.evaluations_submitted)}
         progress={expected ? d.completion.completed / expected : undefined}
         hint={expected ? tr(`${d.completion.percent}% of ${expected} expected`, `${d.completion.percent}% sa ${expected} inaasahan`) : tr('No classes to evaluate yet', 'Wala pang klaseng ie-evaluate')}
       />
       <StatCard
         compact={compact}
-        icon="sparkle"
+        icon="star"
         tone="orange"
-        label={latest ? tr(`Average rating · ${latest.name}`, `Average na rating · ${latest.name}`) : tr('Average rating', 'Average na rating')}
+        label={latest ? tr(`${latest.name} average`, `Average sa ${latest.name}`) : tr('Average rating', 'Average na rating')}
         value={formatRating(average)}
         empty={tr('No ratings yet', 'Wala pang rating')}
         spark={trend.map((t) => t.average as number)}
         delta={latest && previous ? { value: (latest.average as number) - (previous.average as number), caption: tr(`since ${previous.name}`, `mula ${previous.name}`) } : null}
-        hint={tr('all teachers, out of 5', 'lahat ng guro, sa 5')}
+        hint={tr('All teachers, out of 5', 'Lahat ng guro, sa 5')}
       />
     </StatRow>
   );
@@ -144,7 +156,7 @@ function Hero({ d, phone }: { d: AdminDashboard; phone: boolean }) {
         <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: phone ? 30 : 36, overflow: 'hidden' }}>
           <View style={{ position: 'absolute', right: -50, top: -70, width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(255,255,255,0.07)' }} />
         </View>
-        <Txt weight="medium" size={phone ? 13 : 15} color={colors.onFrameMuted} numberOfLines={1}>{`${greetingWord().replace(',', '')}, ${firstName(user?.name ?? '')}${school ? ` · ${user?.admin_scope === 'department' ? user.department : school.short_name ?? school.name}` : ''}`}</Txt>
+        <Txt weight="medium" size={phone ? 13 : 15} color={colors.onFrameMuted} numberOfLines={1}>{adminGreeting(user?.name ?? '', user?.admin_scope === 'department' ? user?.department ?? null : school?.short_name ?? school?.name ?? null)}</Txt>
         <Txt weight="bold" size={phone ? 22 : 30} color="#FFFFFF" style={{ marginTop: 4, letterSpacing: -0.5, lineHeight: phone ? 28 : 36 }} accessibilityRole="header">{title}</Txt>
         <Txt size={phone ? 14 : 16} color={colors.onFrameMuted} style={{ marginTop: 6, lineHeight: phone ? 20 : 23 }}>{body}</Txt>
         {p?.is_open && (
@@ -160,7 +172,6 @@ function Hero({ d, phone }: { d: AdminDashboard; phone: boolean }) {
             style={({ hovered }: { hovered?: boolean }) => ({ marginTop: phone ? 14 : 18, alignSelf: 'flex-start', height: phone ? 42 : 48, paddingHorizontal: phone ? 16 : 22, borderRadius: 999, backgroundColor: hovered ? '#E9EAFB' : '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 8, opacity: cta.busy ? 0.7 : 1 })}
           >
             <Txt weight="semibold" size={phone ? 14 : 16} color="#0B0B6E" numberOfLines={1}>{cta.busy ? tr('Sending…', 'Ipinapadala…') : cta.label}</Txt>
-            <Icon name="chevronRight" size={14} color="#0B0B6E" strokeWidth={2.4} />
           </Pressable>
         )}
         <View pointerEvents="none" style={{ position: 'absolute', right: phone ? -4 : 14, bottom: 0 }}>

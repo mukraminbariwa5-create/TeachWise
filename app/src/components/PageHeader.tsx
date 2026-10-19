@@ -75,11 +75,12 @@ export function SearchPill({ value, onChange, placeholder }: { value: string; on
   );
 }
 
-/** "Aisha Tan" -> "Aisha T", like "Hira R" in the design. */
+/** The name next to the avatar: in full when it fits ("Aisha Tan", "DSU Registrar"), else "Aisha T". */
 function shortName(name: string) {
-  const clean = name.replace(/^(prof|dr|mr|ms|mrs|engr)\.?\s+/i, '');
+  const clean = name.replace(/^(prof|dr|mr|ms|mrs|engr)\.?\s+/i, '').trim();
+  if (clean.length <= 16) return clean;
   const [first, second] = clean.split(/\s+/);
-  return second ? `${first} ${second[0]}` : first;
+  return second ? `${first} ${second[0]}.` : first;
 }
 
 /** Page title inside the phone panel: optional back button and title. */
@@ -127,8 +128,8 @@ function ProfileMenu({ compact }: { compact?: boolean }) {
         onPress={() => setOpen(true)}
         style={({ hovered }: { hovered?: boolean }) => ({ flexDirection: 'row', alignItems: 'center', gap: compact ? 6 : 12, paddingVertical: 4, paddingLeft: 4, paddingRight: compact ? 8 : 12, borderRadius: 999, backgroundColor: hovered || open ? colors.track : 'transparent' })}
       >
-        <Avatar name={user.name} initials={user.initials} size={48} />
-        {!compact && <Txt weight="semibold" size={24} color={colors.textSoft} numberOfLines={1}>{shortName(user.name)}</Txt>}
+        <Avatar name={user.name} initials={user.initials} size={44} />
+        {!compact && <Txt weight="semibold" size={18} color={colors.textSoft} numberOfLines={1}>{shortName(user.name)}</Txt>}
         <Icon name="chevronDown" size={16} color={colors.textSoft} strokeWidth={2.2} />
       </Pressable>
 

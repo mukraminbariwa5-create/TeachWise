@@ -148,7 +148,7 @@ export default function HelpScreen() {
       <Section title={tr('Get started', 'Pagsisimula')}>
         {user.role === 'student' && (
           <ListRow
-            icon="sparkle"
+            icon="glasses"
             title={tr('Take the tour again', 'Mag-tour ulit')}
             subtitle={tr('Professor Wise shows you around the dashboard', 'Ipapakita ni Professor Wise ang dashboard')}
             onPress={() => {

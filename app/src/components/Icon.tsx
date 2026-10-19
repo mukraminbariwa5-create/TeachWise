@@ -4,7 +4,7 @@ import { colors } from '@/theme';
 export type IconName =
   | 'menu' | 'home' | 'user' | 'chat' | 'clipboard' | 'clock' | 'settings' | 'search' | 'bell'
   | 'book' | 'chevronDown' | 'arrowLeft' | 'check' | 'send' | 'sparkle' | 'close' | 'refresh'
-  | 'trash' | 'logout' | 'more' | 'plus' | 'chevronRight' | 'sun' | 'moon' | 'calendar' | 'checkCircle' | 'lock' | 'eye' | 'eyeOff' | 'arrowUp' | 'wifiOff' | 'filter' | 'help' | 'globe' | 'shield' | 'info' | 'download' | 'monitor' | 'mail' | 'bug' | 'users' | 'layers' | 'list' | 'barChart' | 'upload' | 'edit' | 'key' | 'palette' | 'printer' | 'inbox' | 'activity' | 'phone' | 'grid' | 'settings2' | 'sidebar' | 'trendUp' | 'trendDown' | 'lightbulb';
+  | 'trash' | 'logout' | 'more' | 'plus' | 'chevronRight' | 'sun' | 'moon' | 'calendar' | 'checkCircle' | 'lock' | 'eye' | 'eyeOff' | 'arrowUp' | 'wifiOff' | 'filter' | 'help' | 'globe' | 'shield' | 'info' | 'download' | 'monitor' | 'mail' | 'bug' | 'users' | 'layers' | 'list' | 'barChart' | 'upload' | 'edit' | 'key' | 'palette' | 'printer' | 'inbox' | 'activity' | 'phone' | 'grid' | 'settings2' | 'sidebar' | 'trendUp' | 'trendDown' | 'lightbulb' | 'star' | 'glasses';
 
 interface Props {
   name: IconName;
@@ -28,6 +28,14 @@ export function Icon({ name, size = 24, color, strokeWidth = 1.7 }: Props) {
         </>
       )}
       {name === 'settings2' && <Path d="M3 10l9-6 9 6M5 10v9M19 10v9M9 19v-5h6v5M3 19h18M12 7.5h.01" {...p} />}
+      {name === 'star' && <Path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.5l-5.1 2.7 1-5.6-4.1-4 5.7-.8z" {...p} />}
+      {name === 'glasses' && (
+        <>
+          <Circle cx="7" cy="13" r="3.6" {...p} />
+          <Circle cx="17" cy="13" r="3.6" {...p} />
+          <Path d="M10.6 12.4c.9-.7 1.9-.7 2.8 0M3.4 12.2 2.5 9.5M20.6 12.2l.9-2.7" {...p} />
+        </>
+      )}
       {name === 'trendUp' && <Path d="M4 16l5-5 4 4 7-7M15 8h5v5" {...p} />}
       {name === 'trendDown' && <Path d="M4 8l5 5 4-4 7 7M15 16h5v-5" {...p} />}
       {name === 'lightbulb' && <Path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z" {...p} />}
