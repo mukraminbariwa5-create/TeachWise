@@ -14,6 +14,7 @@ use App\Services\EvaluationService;
 use App\Services\FacultyReport;
 use App\Services\RatingStats;
 use App\Support\Present;
+use App\Support\TeachingTips;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -46,7 +47,8 @@ class TeacherController extends Controller
             'teacher' => Present::user($teacher),
             'semester' => Semester::current()?->only(['id', 'name']),
             'overall' => $locked ? ['average' => null, 'responses' => $overall['responses']] : $overall,
-            'criteria' => $locked ? [] : $stats->byCriteria(),
+            'criteria' => $locked ? [] : ($criteria = $stats->byCriteria()),
+            'focus' => $locked ? [] : TeachingTips::focus($criteria),
             'peer_overall' => (new RatingStats($teacher->id, null, 'teacher'))->overall(),
             'trend' => $locked ? [] : FacultyReport::trend($teacher),
             'recent_feedback' => $locked ? [] : $stats->recentComments(3),

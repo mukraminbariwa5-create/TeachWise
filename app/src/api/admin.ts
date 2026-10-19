@@ -11,6 +11,8 @@ export interface AdminDashboard {
   stats: { faculty: number; students: number; evaluations_submitted: number; average_rating: number | null };
   completion: { completed: number; expected: number; percent: number; by_section: { section_id: number; label: string; completed: number; expected: number; percent: number }[] };
   faculty: (Person & { responses: number; average: number | null })[];
+  /** Student answers and average per period that has started, oldest first. */
+  trend?: { period_id: number; name: string; submitted: number; average: number | null }[];
   periods: Period[];
 }
 

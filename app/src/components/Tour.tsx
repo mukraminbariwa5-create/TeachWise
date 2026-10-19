@@ -105,11 +105,14 @@ export function TourOverlay() {
     });
   }, [step, width, height]);
 
+  // Hide the corner Professor Wise while a tour runs. Only undo what this tour added, so opening
+  // a page directly (where the page's own "hide" runs first) doesn't cancel the page's request.
+  const hiding = !!steps;
   useEffect(() => {
-    useUI.getState().addHider(steps ? 1 : -1);
-    // only on start/end of a tour
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!!steps]);
+    if (!hiding) return;
+    useUI.getState().addHider(1);
+    return () => useUI.getState().addHider(-1);
+  }, [hiding]);
 
   if (!steps || !step) return null;
 

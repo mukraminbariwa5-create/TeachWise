@@ -37,7 +37,7 @@ export function ReportView({ report, printable, schoolName }: { report: FacultyR
       </View>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>
-        <Big label={tr('Student rating', 'Rating ng estudyante')} value={formatRating(s.overall.average)} hint={tr(`${s.overall.responses} responses`, `${s.overall.responses} sagot`)} />
+        <StudentSummary report={r} />
         {p.overall.responses > 0 && <Big label={tr('Peer rating', 'Peer rating')} value={formatRating(p.overall.average)} hint={tr(`${p.overall.responses} reviews`, `${p.overall.responses} review`)} />}
       </View>
 
@@ -98,6 +98,59 @@ function Fact({ label, value }: { label: string; value: string }) {
     <View style={{ flex: 1, minWidth: 150, gap: 2 }}>
       <Txt size={text.caption} color={colors.muted} style={{ textTransform: 'uppercase', letterSpacing: 0.6 }}>{label}</Txt>
       <Txt weight="semibold" size={text.bodyLg}>{value}</Txt>
+    </View>
+  );
+}
+
+/** The headline card: overall rating, how it compares with the department, and how the scores spread from 1 to 5. */
+function StudentSummary({ report }: { report: FacultyReport }) {
+  const s = report.student_ratings;
+  const avg = s.overall.average;
+  const dept = report.department_average ?? null;
+  const diff = avg !== null && dept !== null ? avg - dept : null;
+  const dist = s.distribution;
+  const total = dist ? Object.values(dist).reduce((a, b) => a + b, 0) : 0;
+  const labels: Record<string, string> = { '1': tr('Poor', 'Mahina'), '2': tr('Fair', 'Katamtaman'), '3': tr('Good', 'Mabuti'), '4': tr('Very good', 'Napakabuti'), '5': tr('Excellent', 'Napakahusay') };
+
+  return (
+    <View style={{ flex: 2, minWidth: 300, backgroundColor: colors.card, borderRadius: 22, padding: space.lg, borderWidth: 1, borderColor: colors.borderSoft, flexDirection: 'row', flexWrap: 'wrap', gap: space.xl }}>
+      <View style={{ minWidth: 170, gap: 2, justifyContent: 'center' }}>
+        <Txt weight="medium" size={text.body} color={colors.textSoft}>{tr('Student rating', 'Rating ng estudyante')}</Txt>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+          <Txt weight="bold" size={44} style={{ letterSpacing: -1 }}>{formatRating(avg)}</Txt>
+          <Txt size={text.body} color={colors.muted}>/ 5</Txt>
+        </View>
+        <Txt size={text.small} color={colors.muted}>{tr(`${s.overall.responses} responses`, `${s.overall.responses} sagot`)}</Txt>
+        {diff !== null && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: space.xs }}>
+            <View style={{ height: 24, paddingHorizontal: 8, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: diff >= 0.05 ? colors.successBg : diff <= -0.05 ? colors.urgentBg : colors.track }}>
+              <Txt weight="bold" size={text.caption} color={diff >= 0.05 ? colors.successFg : diff <= -0.05 ? colors.urgentFg : colors.textSoft}>
+                {diff >= 0.05 ? tr(`${diff.toFixed(2)} above`, `${diff.toFixed(2)} mas mataas`) : diff <= -0.05 ? tr(`${Math.abs(diff).toFixed(2)} below`, `${Math.abs(diff).toFixed(2)} mas mababa`) : tr('Same as', 'Kapareho ng')}
+              </Txt>
+            </View>
+            <Txt size={text.small} color={colors.muted}>{tr(`department average (${formatRating(dept)})`, `average ng departamento (${formatRating(dept)})`)}</Txt>
+          </View>
+        )}
+      </View>
+      {dist && total > 0 && (
+        <View style={{ flex: 1, minWidth: 240, gap: 8, justifyContent: 'center' }} accessible accessibilityLabel={tr('How students answered', 'Paano sumagot ang mga estudyante')}>
+          <Txt weight="semibold" size={text.small} color={colors.muted} style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>{tr('How students answered', 'Paano sumagot ang mga estudyante')}</Txt>
+          {['5', '4', '3', '2', '1'].map((k) => {
+            const n = dist[k] ?? 0;
+            const pct = n / total;
+            const fill = colors[`rate${k}` as 'rate1'];
+            return (
+              <View key={k} style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }} accessible accessibilityLabel={`${k} ${labels[k]}: ${Math.round(pct * 100)}%`}>
+                <Txt weight="semibold" size={text.small} style={{ width: 78 }} numberOfLines={1}>{`${k} · ${labels[k]}`}</Txt>
+                <View style={{ flex: 1, height: 10, borderRadius: 5, backgroundColor: colors.track, overflow: 'hidden' }}>
+                  <View style={{ width: `${Math.round(pct * 100)}%`, height: 10, borderRadius: 5, backgroundColor: fill }} />
+                </View>
+                <Txt size={text.small} color={colors.muted} style={{ width: 40, textAlign: 'right' }}>{`${Math.round(pct * 100)}%`}</Txt>
+              </View>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 }

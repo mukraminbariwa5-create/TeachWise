@@ -39,12 +39,31 @@ class FacultyReport
             'teacher' => Present::person($teacher),
             'period' => $periodId ? Present::period(EvaluationPeriod::find($periodId)) : null,
             'generated_at' => now()->toIso8601String(),
-            'student_ratings' => ['overall' => $student->overall(), 'criteria' => $student->byCriteria()],
+            'student_ratings' => ['overall' => $student->overall(), 'criteria' => $student->byCriteria(), 'distribution' => $student->distribution()],
+            'department_average' => self::departmentAverage($teacher, $periodId),
             'peer_ratings' => ['overall' => $peer->overall(), 'criteria' => $peer->byCriteria()],
             'classes' => $perClass,
             'trend' => self::trend($teacher),
             'comments' => $student->recentComments(50),
         ];
+    }
+
+    /**
+     * Average student rating across every teacher in the same department (same period filter),
+     * for context: "3.80 vs department 3.95". Null without a department or ratings.
+     */
+    public static function departmentAverage(User $teacher, ?int $periodId = null): ?float
+    {
+        if (! $teacher->department_id) {
+            return null;
+        }
+        $avg = Evaluation::query()
+            ->where('evaluator_role', 'student')
+            ->when($periodId, fn ($q) => $q->where('evaluation_period_id', $periodId))
+            ->whereIn('teacher_id', User::where('role', User::ROLE_TEACHER)->where('department_id', $teacher->department_id)->select('id'))
+            ->avg('overall_rating');
+
+        return $avg !== null ? round((float) $avg, 2) : null;
     }
 
     /** Average student rating per evaluation period, oldest first. */

@@ -213,8 +213,9 @@ function Footer() {
 
 function Tabs({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
   const tabs: { key: Mode; label: string }[] = [
-    { key: 'signup', label: tr('Create account', 'Gumawa ng account') },
+    // Sign in first: most visits are people coming back.
     { key: 'signin', label: tr('Sign in', 'Mag-sign in') },
+    { key: 'signup', label: tr('Create account', 'Gumawa ng account') },
   ];
   return (
     <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 18, padding: 5, borderWidth: 1, borderColor: colors.borderSoft }}>

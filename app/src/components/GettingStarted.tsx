@@ -9,7 +9,7 @@ import { colors, shadowStyle } from '@/theme';
 import { Icon } from './Icon';
 import { FadeIn } from './Motion';
 import { Txt } from './Txt';
-import { WiseMascot } from './WiseMascot';
+import { ProgressRing } from './ProgressRing';
 
 /**
  * "Getting started · 2 of 4 done", like Padala's first-run checklist.
@@ -60,9 +60,9 @@ export function GettingStarted({ data, compact }: { data: StudentDashboard; comp
     <FadeIn>
       <View style={[{ backgroundColor: colors.card, borderRadius: compact ? 26 : 32, padding: compact ? 18 : 26, gap: 4 }, shadowStyle('soft')]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: compact ? 12 : 16, marginBottom: 10 }}>
-          <View style={{ width: compact ? 62 : 76, height: compact ? 62 : 76, borderRadius: compact ? 20 : 24, backgroundColor: colors.brandSoft, alignItems: 'center', justifyContent: 'flex-end', overflow: 'hidden' }}>
-            <WiseMascot size={compact ? 64 : 78} mood={doneCount >= 3 ? 'proud' : 'writing'} float={false} shadow={false} />
-          </View>
+          <ProgressRing value={doneCount / steps.length} size={compact ? 52 : 60} stroke={compact ? 6 : 7} color={colors.successFg}>
+            <Txt weight="bold" size={compact ? 14 : 16} color={colors.text}>{`${doneCount}/${steps.length}`}</Txt>
+          </ProgressRing>
           <View style={{ flex: 1, gap: 2 }}>
             <Txt weight="semibold" size={12} color={colors.muted} style={{ letterSpacing: 1.2 }}>
               {compact ? tr(`GETTING STARTED · ${doneCount}/${steps.length}`, `PANIMULA · ${doneCount}/${steps.length}`) : tr(`GETTING STARTED · ${doneCount} OF ${steps.length} DONE`, `PANIMULA · ${doneCount} SA ${steps.length} TAPOS NA`)}

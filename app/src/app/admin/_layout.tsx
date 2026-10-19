@@ -23,19 +23,22 @@ function AdminShell() {
   const requests = counts.passwords + counts.inbox;
 
   // Department admins (deans, chairs) manage people and classes in their department only.
+  const people = tr('People', 'Mga tao');
+  const evaluation = tr('Evaluation', 'Evaluation');
+  const schoolGroup = tr('School', 'Paaralan');
   const nav: NavItem[] = [
     { href: '/admin', icon: 'grid', label: tr('Overview', 'Overview') },
-    { href: '/admin/users', icon: 'users', label: tr('People', 'Mga tao') },
-    { href: '/admin/academics', icon: 'book', label: tr('Classes & sections', 'Klase at section') },
-    ...(dept ? [] : [{ href: '/admin/evaluation', icon: 'clipboard', label: tr('Evaluation setup', 'Setup ng evaluation') } as NavItem]),
-    { href: '/admin/ids', icon: 'shield', label: tr('Approved IDs', 'Mga aprubadong ID') },
-    { href: '/admin/requests', icon: 'inbox', label: tr('Requests', 'Mga request'), badge: requests },
-    { href: '/admin/reports', icon: 'barChart', label: tr('Reports', 'Mga report') },
+    { href: '/admin/users', icon: 'users', label: tr('People', 'Mga tao'), group: people },
+    { href: '/admin/ids', icon: 'shield', label: tr('Approved IDs', 'Mga aprubadong ID'), group: people },
+    { href: '/admin/requests', icon: 'inbox', label: tr('Requests', 'Mga request'), badge: requests, group: people },
+    { href: '/admin/academics', icon: 'book', label: tr('Classes & sections', 'Klase at section'), group: evaluation },
+    ...(dept ? [] : [{ href: '/admin/evaluation', icon: 'clipboard', label: tr('Evaluation setup', 'Setup ng evaluation'), group: evaluation } as NavItem]),
+    { href: '/admin/reports', icon: 'barChart', label: tr('Reports', 'Mga report'), group: evaluation },
     ...(dept
       ? []
       : [
-          { href: '/admin/activity', icon: 'activity', label: tr('Activity', 'Aktibidad') } as NavItem,
-          { href: '/admin/school', icon: 'settings2', label: tr('School settings', 'Settings ng paaralan') } as NavItem,
+          { href: '/admin/activity', icon: 'activity', label: tr('Activity', 'Aktibidad'), group: schoolGroup } as NavItem,
+          { href: '/admin/school', icon: 'settings2', label: tr('School settings', 'Settings ng paaralan'), group: schoolGroup } as NavItem,
         ]),
   ];
 

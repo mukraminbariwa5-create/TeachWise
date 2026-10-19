@@ -8,7 +8,7 @@ import { FadeIn } from './Motion';
 import { Icon } from './Icon';
 import { RichText } from './RichText';
 import { WiseChat } from './WiseChat';
-import { WiseMascot, type Mood } from './WiseMascot';
+import { WiseHead, type Mood } from './WiseMascot';
 
 export interface WiseTip {
   text: string;
@@ -70,12 +70,14 @@ export function TipBubble({ tip, onClose, tail = 'right', maxWidth = 300 }: { ti
 }
 
 /**
- * Computers: Professor Wise in the bottom-right corner, like Dala in Padala.
- * Click him to open the chat panel. He slides away while the page scrolls,
+ * Computers: a round Professor Wise button in the bottom-right corner of the page panel, like Dala in Padala.
+ * Click him to open the chat. On wide screens the chat docks beside the page (see Shell) so it never
+ * covers anything; on narrower ones it floats above the button. He slides away while the page scrolls,
  * and hides on screens that already show a big Professor Wise.
  */
-export function WiseLauncher({ subtitle, placeholder, tip, tipKey }: { subtitle: string; placeholder?: string; tip?: WiseTip | null; tipKey: string }) {
-  const [open, setOpen] = useState(false);
+export function WiseLauncher({ subtitle, placeholder, tip, tipKey, docked, inset = { right: 60, bottom: 60 } }: { subtitle: string; placeholder?: string; tip?: WiseTip | null; tipKey: string; docked?: boolean; inset?: { right: number; bottom: number } }) {
+  const open = useUI((s) => s.wiseOpen);
+  const setOpen = useUI((s) => s.setWiseOpen);
   const [bubble, setBubble] = useTipBubble(tip, tipKey);
   const { width, height } = useWindowDimensions();
   const hidden = useUI((s) => s.launcherHiders > 0);
@@ -87,15 +89,21 @@ export function WiseLauncher({ subtitle, placeholder, tip, tipKey }: { subtitle:
     Animated.timing(away, { toValue: out ? 1 : 0, duration: out ? 220 : 360, useNativeDriver: native }).start();
   }, [out, away]);
 
+  // Close the chat when leaving the page that owns this launcher.
+  useEffect(() => () => setOpen(false), [setOpen]);
+
+  // Docked chat has its own close button; the corner button steps aside.
+  if (open && docked) return null;
+
   return (
     <Animated.View
       pointerEvents={out ? 'none' : 'box-none'}
       style={{
         position: 'absolute',
-        right: 26,
-        bottom: 28,
+        right: inset.right,
+        bottom: inset.bottom,
         alignItems: 'flex-end',
-        gap: 10,
+        gap: 12,
         zIndex: 50,
         opacity: away.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
         transform: [{ translateX: away.interpolate({ inputRange: [0, 1], outputRange: [0, 140] }) }],
@@ -105,7 +113,7 @@ export function WiseLauncher({ subtitle, placeholder, tip, tipKey }: { subtitle:
         <FadeIn distance={16}>
           <View
             style={[
-              { width: Math.min(380, width - 32), height: Math.min(540, height - 160), borderRadius: 28, overflow: 'hidden', backgroundColor: colors.card },
+              { width: Math.min(380, width - 32), height: Math.min(540, height - inset.bottom - 120), borderRadius: 28, overflow: 'hidden', backgroundColor: colors.card },
               { ...shadowStyle('lift'), shadowOpacity: 0.25, shadowRadius: 40, elevation: 12 },
             ]}
           >
@@ -125,18 +133,31 @@ export function WiseLauncher({ subtitle, placeholder, tip, tipKey }: { subtitle:
         accessibilityLabel={open ? tr('Close Professor Wise', 'Isara si Professor Wise') : tr('Ask Professor Wise', 'Magtanong kay Professor Wise')}
         onPress={() => {
           setBubble(null);
-          setOpen((o) => !o);
+          setOpen(!open);
         }}
-        style={({ hovered }: { hovered?: boolean }) => ({ transform: [{ scale: hovered ? 1.06 : 1 }] })}
+        style={({ hovered, pressed }: { hovered?: boolean; pressed?: boolean }) => ({ transform: [{ scale: pressed ? 0.94 : hovered ? 1.06 : 1 }] })}
       >
-        {open ? (
-          <View style={[{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.frame, alignItems: 'center', justifyContent: 'center' }, shadowStyle('lift')]}>
-            <Icon name="close" size={26} color="#FFFFFF" strokeWidth={2} />
+        {({ hovered }: { hovered?: boolean }) => (
+          <View
+            style={[
+              { width: 66, height: 66, borderRadius: 33, backgroundColor: open ? colors.frame : '#FFFFFF', borderWidth: 3, borderColor: open ? colors.frame : colors.brand, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+              shadowStyle('lift'),
+            ]}
+          >
+            {open ? <Icon name="close" size={24} color="#FFFFFF" strokeWidth={2.2} /> : <WiseHead size={46} mood={bubble ? 'laugh' : hovered ? 'grin' : 'wink'} pop />}
           </View>
-        ) : (
-          <WiseMascot size={112} mood={bubble?.mood ?? 'happy'} />
         )}
       </Pressable>
     </Animated.View>
+  );
+}
+
+/** Computers with room to spare: the chat as a column beside the page instead of on top of it. */
+export function DockedWiseChat({ subtitle, placeholder }: { subtitle: string; placeholder?: string }) {
+  const setOpen = useUI((s) => s.setWiseOpen);
+  return (
+    <FadeIn distance={16} style={{ width: 380, marginLeft: 14, borderRadius: 36, overflow: 'hidden', backgroundColor: colors.card }}>
+      <WiseChat subtitle={subtitle} placeholder={placeholder} onClose={() => setOpen(false)} />
+    </FadeIn>
   );
 }

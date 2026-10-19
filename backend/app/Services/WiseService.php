@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\TeachingTips;
 use App\Models\ChatMessage;
 use App\Models\Evaluation;
 use App\Models\EvaluationPeriod;
@@ -307,16 +308,7 @@ class WiseService
 
     private function tipFor(string $category): string
     {
-        $c = Str::lower($category);
-
-        return match (true) {
-            Str::contains($c, 'clarity') => 'Try writing clear checklists for projects and recapping the key points at the end of each class.',
-            Str::contains($c, 'method') => 'Mix short activities or real examples into lectures, and check understanding with quick questions.',
-            Str::contains($c, 'management') => 'Start and end on time, and set clear class rules at the start of the term.',
-            Str::contains($c, 'grading', 'fair') => 'Share rubrics before activities and explain how each score was given.',
-            Str::contains($c, 'mastery', 'expertise') => 'Prepare a few real-world examples per topic and invite questions.',
-            default => 'Ask a few students what would help most, and try one small change for two weeks.',
-        };
+        return TeachingTips::for($category)[0];
     }
 
     private function surname(User $user): string

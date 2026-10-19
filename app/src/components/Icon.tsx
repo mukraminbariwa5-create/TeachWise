@@ -4,7 +4,7 @@ import { colors } from '@/theme';
 export type IconName =
   | 'menu' | 'home' | 'user' | 'chat' | 'clipboard' | 'clock' | 'settings' | 'search' | 'bell'
   | 'book' | 'chevronDown' | 'arrowLeft' | 'check' | 'send' | 'sparkle' | 'close' | 'refresh'
-  | 'trash' | 'logout' | 'more' | 'plus' | 'chevronRight' | 'sun' | 'moon' | 'calendar' | 'checkCircle' | 'lock' | 'eye' | 'eyeOff' | 'arrowUp' | 'wifiOff' | 'filter' | 'help' | 'globe' | 'shield' | 'info' | 'download' | 'monitor' | 'mail' | 'bug' | 'users' | 'layers' | 'list' | 'barChart' | 'upload' | 'edit' | 'key' | 'palette' | 'printer' | 'inbox' | 'activity' | 'phone' | 'grid' | 'settings2';
+  | 'trash' | 'logout' | 'more' | 'plus' | 'chevronRight' | 'sun' | 'moon' | 'calendar' | 'checkCircle' | 'lock' | 'eye' | 'eyeOff' | 'arrowUp' | 'wifiOff' | 'filter' | 'help' | 'globe' | 'shield' | 'info' | 'download' | 'monitor' | 'mail' | 'bug' | 'users' | 'layers' | 'list' | 'barChart' | 'upload' | 'edit' | 'key' | 'palette' | 'printer' | 'inbox' | 'activity' | 'phone' | 'grid' | 'settings2' | 'sidebar' | 'trendUp' | 'trendDown' | 'lightbulb';
 
 interface Props {
   name: IconName;
@@ -21,6 +21,16 @@ export function Icon({ name, size = 24, color, strokeWidth = 1.7 }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
       {name === 'menu' && <Path d="M4 7h16M8 12h12M4 17h16" {...p} />}
+      {name === 'sidebar' && (
+        <>
+          <Rect x="3.5" y="4.5" width="17" height="15" rx="3" {...p} />
+          <Path d="M9.5 4.5v15" {...p} />
+        </>
+      )}
+      {name === 'settings2' && <Path d="M3 10l9-6 9 6M5 10v9M19 10v9M9 19v-5h6v5M3 19h18M12 7.5h.01" {...p} />}
+      {name === 'trendUp' && <Path d="M4 16l5-5 4 4 7-7M15 8h5v5" {...p} />}
+      {name === 'trendDown' && <Path d="M4 8l5 5 4-4 7 7M15 16h5v-5" {...p} />}
+      {name === 'lightbulb' && <Path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z" {...p} />}
       {name === 'plus' && <Path d="M12 5v14M5 12h14" {...p} />}
       {name === 'arrowUp' && <Path d="M12 19V5M6 11l6-6 6 6" {...p} />}
       {name === 'help' && (

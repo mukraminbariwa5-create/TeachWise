@@ -115,7 +115,7 @@ export function CriteriaBars({ criteria }: { criteria: Criterion[] }) {
               <Txt weight="semibold" size={text.body}>{fmt(c.average)}</Txt>
             </View>
             <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.track, overflow: 'hidden' }}>
-              <View style={{ width: `${pct * 100}%`, height: 8, borderRadius: 4, backgroundColor: colors.navy }} />
+              <View style={{ width: `${pct * 100}%`, height: 8, borderRadius: 4, backgroundColor: c.question_id === strongest ? colors.successFg : c.question_id === weakest ? colors.urgent : colors.navy }} />
             </View>
           </View>
         );

@@ -167,6 +167,11 @@ class DemoSeeder extends Seeder
             WhitelistedId::firstOrCreate(['id_number' => $id], ['notes' => 'Demo list']);
         }
 
+        // A finished Prelim, so dashboards and reports have a trend to show.
+        $prelim = EvaluationPeriod::create([
+            'semester_id' => $semester->id, 'name' => 'Prelim', 'type' => 'student',
+            'opens_at' => now()->subWeeks(6)->startOfDay(), 'closes_at' => now()->subWeeks(6)->addDays(3)->endOfDay(),
+        ]);
         $midterm = EvaluationPeriod::create([
             'semester_id' => $semester->id, 'name' => 'Midterm', 'type' => 'student',
             'opens_at' => now()->subDay()->startOfDay(), 'closes_at' => now()->addDays(2)->endOfDay(),
@@ -189,18 +194,33 @@ class DemoSeeder extends Seeder
             null, null,
         ];
 
-        $submit = function (User $student, ClassOffering $offering) use ($midterm, $questions, $comments) {
-            $ratings = $questions->map(fn () => mt_rand(3, 5));
+        $submit = function (User $student, ClassOffering $offering, ?EvaluationPeriod $period = null) use ($midterm, $questions, $comments) {
+            $period ??= $midterm;
+            $early = $period->id !== $midterm->id;
+            // Prelim ratings run a little lower, so the demo shows teachers improving.
+            $ratings = $questions->map(fn () => $early ? mt_rand(2, 5) : mt_rand(3, 5));
             $evaluation = Evaluation::create([
-                'evaluation_period_id' => $midterm->id, 'class_offering_id' => $offering->id,
+                'evaluation_period_id' => $period->id, 'class_offering_id' => $offering->id,
                 'teacher_id' => $offering->teacher_id, 'evaluator_id' => $student->id, 'evaluator_role' => 'student',
                 'overall_rating' => round($ratings->avg(), 2), 'comment' => $comments[array_rand($comments)],
-                'submitted_at' => now()->subHours(mt_rand(1, 30)),
+                'submitted_at' => $early ? $period->closes_at->copy()->subHours(mt_rand(2, 60)) : now()->subHours(mt_rand(1, 30)),
             ]);
             foreach ($questions as $i => $q) {
                 $evaluation->answers()->create(['question_id' => $q->id, 'rating' => $ratings[$i]]);
             }
         };
+
+        // Prelim (Aisha joined after it, so her history only shows this term's Midterm).
+        foreach ($classmates as $student) {
+            foreach ($offerings4A as $offering) {
+                $submit($student, $offering, $prelim);
+            }
+        }
+        foreach ($thirdYears as $student) {
+            foreach ($offerings3B as $offering) {
+                $submit($student, $offering, $prelim);
+            }
+        }
 
         // Aisha has finished 2 of her 4 teachers, matching the mockup.
         $submit($aisha, $offerings4A[2]);

@@ -1,14 +1,16 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { tr } from '@/lib/i18n';
-import { Animated, Easing, Platform, Pressable, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePathname, useRouter, type Href } from 'expo-router';
 import { useNotifications } from '@/api/hooks';
+import type { SchoolInfo } from '@/api/types';
 import { useAuth } from '@/auth/store';
 import { schoolShortName } from '@/lib/school';
 import { useLayoutSize } from '@/lib/useLayout';
 import { useReducedMotion } from '@/lib/useReducedMotion';
-import { tap } from '@/lib/ui';
+import { getPref, setPref } from '@/lib/prefs';
+import { tap, useUI } from '@/lib/ui';
 import { colors, shadowStyle } from '@/theme';
 import { Icon, type IconName } from './Icon';
 import { LogoMark, Wordmark } from './Logo';
@@ -17,7 +19,7 @@ import { OfflineBanner } from './OfflineBanner';
 import { SchoolBadge } from './SchoolBadge';
 import { TourOverlay, TourTarget } from './Tour';
 import { Txt } from './Txt';
-import { TipBubble, useTipBubble, WiseLauncher, type WiseTip } from './WiseLauncher';
+import { DockedWiseChat, TipBubble, useTipBubble, WiseLauncher, type WiseTip } from './WiseLauncher';
 import { WiseHead } from './WiseMascot';
 
 export interface NavItem {
@@ -32,6 +34,8 @@ export interface NavItem {
   tourId?: string;
   /** Other pages that count as this tab (e.g. Profile and Settings under Account). */
   match?: string[];
+  /** Heading shown above this item in the open sidebar (only on the first item of each group). */
+  group?: string;
 }
 
 export interface PhoneTabs {
@@ -82,46 +86,85 @@ export function Shell({ nav, settingsItem, phoneTabs, wise, tipFor, hideTabsOn, 
     else if (item.href) router.navigate(item.href as Href);
   };
   const tip = tipFor?.(path) ?? null;
+  const { width } = useWindowDimensions();
+  const wiseOpen = useUI((st) => st.wiseOpen);
+  const [sidebarOpen, toggleSidebar] = useSidebarPref(nav.length > 5);
 
   if (size !== 'phone') {
     const compact = size === 'tablet';
+    const expanded = !compact && sidebarOpen;
+    const docked = !!wise && wiseOpen && width >= 1200;
+    const sideWidth = expanded ? 248 : compact ? 76 : 116;
     return (
       <View style={{ flex: 1, backgroundColor: colors.page, padding: compact ? 14 : 28 }}>
         <View style={{ flex: 1, flexDirection: 'row', backgroundColor: colors.frame, borderRadius: compact ? 32 : 44, padding: compact ? 10 : 14 }}>
-          <View accessibilityRole="menu" style={{ width: compact ? 76 : 116, zIndex: 10, alignItems: 'center', paddingTop: compact ? 22 : 38, paddingBottom: 24 }}>
-            <Pressable
-              accessibilityRole="link"
-              accessibilityLabel={tr('TeachWise home', 'Home ng TeachWise')}
-              onPress={() => router.navigate(home as Href)}
-              style={({ hovered }: { hovered?: boolean }) => ({ marginBottom: compact ? 30 : 46, transform: [{ scale: hovered ? 1.06 : 1 }] })}
-            >
-              <LogoMark size={compact ? 50 : 62} />
-            </Pressable>
-            <View style={{ alignItems: 'center', gap: nav.length > 5 ? (compact ? 10 : 14) : compact ? 20 : 30 }}>
-              {nav.map((item) =>
-                item.tourId ? (
-                  <TourTarget key={item.label} id={item.tourId}>
-                    <SideItem item={item} active={isActive(item.href)} compact={compact} onPress={() => go(item)} />
-                  </TourTarget>
-                ) : (
-                  <SideItem key={item.label} item={item} active={isActive(item.href)} compact={compact} onPress={() => go(item)} />
-                )
+          <View accessibilityRole="menu" style={{ width: sideWidth, zIndex: 10, alignItems: expanded ? 'stretch' : 'center', paddingTop: compact ? 22 : 34, paddingBottom: 24, paddingHorizontal: expanded ? 14 : 0 }}>
+            <View style={{ flexDirection: expanded ? 'row' : 'column', alignItems: 'center', gap: expanded ? 10 : 14, marginBottom: compact ? 30 : expanded ? 30 : 34, paddingHorizontal: expanded ? 6 : 0 }}>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel={tr('TeachWise home', 'Home ng TeachWise')}
+                onPress={() => router.navigate(home as Href)}
+                style={({ hovered }: { hovered?: boolean }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, flex: expanded ? 1 : undefined, transform: [{ scale: hovered ? 1.04 : 1 }] })}
+              >
+                <LogoMark size={compact ? 50 : expanded ? 46 : 62} />
+                {expanded && <Wordmark size={20} onDark />}
+              </Pressable>
+              {!compact && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={expanded ? tr('Collapse sidebar', 'Paliitin ang sidebar') : tr('Expand sidebar', 'Palakihin ang sidebar')}
+                  accessibilityState={{ expanded }}
+                  onPress={toggleSidebar}
+                  style={({ hovered }: { hovered?: boolean }) => ({ width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: hovered ? colors.frameSoft : 'transparent' })}
+                >
+                  <Icon name="sidebar" size={20} color={colors.onFrameMuted} strokeWidth={1.8} />
+                </Pressable>
               )}
             </View>
+            <View style={{ alignItems: expanded ? 'stretch' : 'center', gap: expanded ? 4 : nav.length > 5 ? (compact ? 10 : 14) : compact ? 20 : 30 }}>
+              {nav.map((item, i) => {
+                const heading = expanded && item.group && item.group !== nav[i - 1]?.group ? item.group : null;
+                const divider = !expanded && i > 0 && item.group && item.group !== nav[i - 1]?.group;
+                const el = expanded ? (
+                  <SideRow item={item} active={isActive(item.href)} onPress={() => go(item)} />
+                ) : (
+                  <SideItem item={item} active={isActive(item.href)} compact={compact} onPress={() => go(item)} />
+                );
+                return (
+                  <View key={item.label} style={{ alignItems: expanded ? 'stretch' : 'center' }}>
+                    {heading && (
+                      <Txt weight="semibold" size={11} color={colors.onFrameMuted} style={{ letterSpacing: 1.1, textTransform: 'uppercase', marginTop: i === 0 ? 0 : 14, marginBottom: 6, marginLeft: 16, opacity: 0.8 }}>{heading}</Txt>
+                    )}
+                    {divider && <View style={{ width: 28, height: 1, backgroundColor: 'rgba(255,255,255,0.18)', marginBottom: compact ? 10 : 14 }} />}
+                    {item.tourId ? <TourTarget id={item.tourId}>{el}</TourTarget> : el}
+                  </View>
+                );
+              })}
+            </View>
             <View style={{ flex: 1 }} />
-            {school && (
-              <View accessible accessibilityLabel={school.name} style={{ marginBottom: compact ? 12 : 18 }}>
-                <SchoolBadge school={school} size={compact ? 38 : 46} onDark />
-              </View>
+            {school && (expanded ? <SchoolRow school={school} /> : <SchoolDot school={school} compact={compact} />)}
+            {expanded ? (
+              <SideRow item={settingsItem} active={isActive(settingsItem.href)} onPress={() => go(settingsItem)} />
+            ) : (
+              <SideItem item={settingsItem} active={isActive(settingsItem.href)} compact={compact} onPress={() => go(settingsItem)} />
             )}
-            <SideItem item={settingsItem} active={isActive(settingsItem.href)} compact={compact} onPress={() => go(settingsItem)} />
           </View>
           <View style={{ flex: 1, minWidth: 0, backgroundColor: colors.surface, borderRadius: compact ? 26 : 36, overflow: 'hidden' }}>
             <OfflineBanner />
             {children}
           </View>
+          {docked && wise && <DockedWiseChat subtitle={wise.subtitle} placeholder={wise.placeholder} />}
         </View>
-        {wise && !path.startsWith(wise.chatHref) && <WiseLauncher subtitle={wise.subtitle} placeholder={wise.placeholder} tip={tip} tipKey={path} />}
+        {wise && !path.startsWith(wise.chatHref) && (
+          <WiseLauncher
+            subtitle={wise.subtitle}
+            placeholder={wise.placeholder}
+            tip={tip}
+            tipKey={path}
+            docked={width >= 1200}
+            inset={compact ? { right: 44, bottom: 40 } : { right: 64, bottom: 60 }}
+          />
+        )}
         <NotificationsSheet />
         <TourOverlay />
       </View>
@@ -195,6 +238,85 @@ function SideItem({ item, active, compact, onPress }: { item: NavItem; active: b
           {hovered && !native && (
             <View pointerEvents="none" style={{ position: 'absolute', left: d + 10, backgroundColor: colors.inverse, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, zIndex: 50 }}>
               <Txt weight="semibold" size={13} color={colors.onInverse} numberOfLines={1} style={{ whiteSpace: 'nowrap' } as object}>{item.label}</Txt>
+            </View>
+          )}
+        </>
+      )}
+    </Pressable>
+  );
+}
+
+/** Remembers whether the computer sidebar shows labels. Admins (many pages) start with it open. */
+function useSidebarPref(defaultOpen: boolean): [boolean, () => void] {
+  const [open, setOpen] = useState(defaultOpen);
+  useEffect(() => {
+    getPref('sidebarOpen').then((v) => {
+      if (v === '1' || v === '0') setOpen(v === '1');
+    });
+  }, []);
+  const toggle = () => {
+    tap();
+    setOpen((o) => {
+      setPref('sidebarOpen', o ? '0' : '1');
+      return !o;
+    });
+  };
+  return [open, toggle];
+}
+
+/** A labelled row in the open sidebar: the active page is a white pill. */
+function SideRow({ item, active, onPress }: { item: NavItem; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="menuitem"
+      accessibilityLabel={item.badge ? `${item.label} (${item.badge})` : item.label}
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={({ hovered, pressed }: { hovered?: boolean; pressed?: boolean }) => ({
+        height: 48,
+        borderRadius: 16,
+        paddingHorizontal: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        backgroundColor: active ? colors.card : hovered ? colors.frameSoft : 'transparent',
+        transform: [{ scale: pressed ? 0.97 : 1 }],
+      })}
+    >
+      <Icon name={item.icon} size={22} color={active ? colors.navy : '#FFFFFF'} strokeWidth={active ? 2 : 1.7} />
+      <Txt weight={active ? 'semibold' : 'medium'} size={15} color={active ? colors.accent : '#FFFFFF'} numberOfLines={1} style={{ flex: 1 }}>{item.label}</Txt>
+      {!!item.badge && (
+        <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: colors.alert, alignItems: 'center', justifyContent: 'center' }}>
+          <Txt weight="bold" size={11} color="#FFFFFF">{item.badge > 99 ? '99+' : String(item.badge)}</Txt>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+/** Open sidebar: the school's badge with its name, so it's clear what "DS" means. */
+function SchoolRow({ school }: { school: SchoolInfo }) {
+  return (
+    <View accessible accessibilityLabel={tr(`School: ${school.name}`, `Paaralan: ${school.name}`)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, marginBottom: 10, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.07)' }}>
+      <SchoolBadge school={school} size={38} onDark />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Txt size={11} color={colors.onFrameMuted} style={{ letterSpacing: 0.8 }}>{tr('SCHOOL', 'PAARALAN')}</Txt>
+        <Txt weight="semibold" size={14} color="#FFFFFF" numberOfLines={2}>{school.name}</Txt>
+      </View>
+    </View>
+  );
+}
+
+/** Icon sidebar: just the badge, with the school's name on hover. */
+function SchoolDot({ school, compact }: { school: SchoolInfo; compact: boolean }) {
+  return (
+    <Pressable accessible accessibilityLabel={tr(`School: ${school.name}`, `Paaralan: ${school.name}`)} style={{ marginBottom: compact ? 12 : 18 }}>
+      {({ hovered }: { hovered?: boolean }) => (
+        <>
+          <SchoolBadge school={school} size={compact ? 38 : 46} onDark />
+          {hovered && !native && (
+            <View pointerEvents="none" style={{ position: 'absolute', left: (compact ? 38 : 46) + 12, top: 4, backgroundColor: colors.inverse, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, zIndex: 50 }}>
+              <Txt weight="semibold" size={13} color={colors.onInverse} numberOfLines={1} style={{ whiteSpace: 'nowrap' } as object}>{school.name}</Txt>
             </View>
           )}
         </>

@@ -11,7 +11,7 @@ import { ScreenState } from '@/components/ScreenState';
 import { Bone } from '@/components/Skeleton';
 import { Txt } from '@/components/Txt';
 import { SetupChecklist } from '@/components/admin/SetupChecklist';
-import { confirm, Panel, StatCard } from '@/components/ui';
+import { confirm, Panel, StatCard, StatRow } from '@/components/ui';
 import { WiseMascot, type Mood } from '@/components/WiseMascot';
 import { firstName, greetingWord, shortDate } from '@/lib/format';
 import { tr } from '@/lib/i18n';
@@ -46,12 +46,7 @@ export default function AdminHome() {
       {phone ? <AppBar title={tr('Overview', 'Overview')} subtitle={d.semester?.name} /> : <PageHeader title={tr('Overview', 'Overview')} />}
       <Hero d={d} phone={phone} />
       {!dept && <SetupChecklist />}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>
-        <StatCard icon="users" label={tr('Students', 'Mga estudyante')} value={String(d.stats.students)} hint={tr('active accounts', 'aktibong account')} />
-        <StatCard icon="book" tone="brand" label={tr('Faculty', 'Faculty')} value={String(d.stats.faculty)} hint={tr('active teachers', 'aktibong guro')} />
-        <StatCard icon="checkCircle" tone="green" label={tr('Submitted', 'Naipasa')} value={String(d.stats.evaluations_submitted)} hint={d.period?.name ?? tr('this period', 'ngayong period')} />
-        <StatCard icon="sparkle" tone="orange" label={tr('Average rating', 'Average na rating')} value={formatRating(d.stats.average_rating)} hint={tr('all teachers, out of 5', 'lahat ng guro, sa 5')} />
-      </View>
+      <Stats d={d} compact={phone} />
       <Attention />
       <View style={{ flexDirection: size === 'desktop' ? 'row' : 'column', gap: space.lg, alignItems: 'flex-start' }}>
         <View style={{ flex: 1, alignSelf: 'stretch' }}>
@@ -62,6 +57,42 @@ export default function AdminHome() {
         </View>
       </View>
     </ScrollView>
+  );
+}
+
+/** Students, faculty, this period's answers (with progress) and the average rating (with its trend). */
+function Stats({ d, compact }: { d: AdminDashboard; compact: boolean }) {
+  const trend = (d.trend ?? []).filter((t) => t.average !== null);
+  const current = d.period ? trend.find((t) => t.period_id === d.period!.id) : undefined;
+  const latest = current ?? trend[trend.length - 1];
+  const previous = latest ? trend[trend.indexOf(latest) - 1] : undefined;
+  const average = latest?.average ?? d.stats.average_rating;
+  const expected = d.completion.expected;
+  return (
+    <StatRow>
+      <StatCard compact={compact} icon="users" label={tr('Students', 'Mga estudyante')} value={String(d.stats.students)} hint={tr('active accounts', 'aktibong account')} />
+      <StatCard compact={compact} icon="book" tone="brand" label={tr('Faculty', 'Faculty')} value={String(d.stats.faculty)} hint={tr('active teachers', 'aktibong guro')} />
+      <StatCard
+        compact={compact}
+        icon="checkCircle"
+        tone="green"
+        label={d.period ? tr(`Submitted · ${d.period.name}`, `Naipasa · ${d.period.name}`) : tr('Submitted', 'Naipasa')}
+        value={String(d.stats.evaluations_submitted)}
+        progress={expected ? d.completion.completed / expected : undefined}
+        hint={expected ? tr(`${d.completion.percent}% of ${expected} expected`, `${d.completion.percent}% sa ${expected} inaasahan`) : tr('No classes to evaluate yet', 'Wala pang klaseng ie-evaluate')}
+      />
+      <StatCard
+        compact={compact}
+        icon="sparkle"
+        tone="orange"
+        label={latest ? tr(`Average rating · ${latest.name}`, `Average na rating · ${latest.name}`) : tr('Average rating', 'Average na rating')}
+        value={formatRating(average)}
+        empty={tr('No ratings yet', 'Wala pang rating')}
+        spark={trend.map((t) => t.average as number)}
+        delta={latest && previous ? { value: (latest.average as number) - (previous.average as number), caption: tr(`since ${previous.name}`, `mula ${previous.name}`) } : null}
+        hint={tr('all teachers, out of 5', 'lahat ng guro, sa 5')}
+      />
+    </StatRow>
   );
 }
 
@@ -106,10 +137,10 @@ function Hero({ d, phone }: { d: AdminDashboard; phone: boolean }) {
     }
   }
 
-  const sticker = phone ? 128 : 190;
+  const sticker = phone ? 112 : 190;
   return (
     <FadeIn>
-      <View style={{ backgroundColor: colors.frame, borderRadius: phone ? 30 : 36, paddingVertical: phone ? 22 : 30, paddingLeft: phone ? 22 : 34, paddingRight: sticker * (phone ? 0.8 : 0.95), minHeight: phone ? 150 : 176 }}>
+      <View style={{ backgroundColor: colors.frame, borderRadius: phone ? 30 : 36, paddingVertical: phone ? 22 : 30, paddingLeft: phone ? 22 : 34, paddingRight: phone ? sticker - 4 : sticker + 8, minHeight: phone ? 150 : 176 }}>
         <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: phone ? 30 : 36, overflow: 'hidden' }}>
           <View style={{ position: 'absolute', right: -50, top: -70, width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(255,255,255,0.07)' }} />
         </View>
@@ -132,7 +163,7 @@ function Hero({ d, phone }: { d: AdminDashboard; phone: boolean }) {
             <Icon name="chevronRight" size={14} color="#0B0B6E" strokeWidth={2.4} />
           </Pressable>
         )}
-        <View pointerEvents="none" style={{ position: 'absolute', right: phone ? 0 : 14, bottom: 0 }}>
+        <View pointerEvents="none" style={{ position: 'absolute', right: phone ? -4 : 14, bottom: 0 }}>
           <WiseMascot size={sticker} mood={mood} shadow={false} />
         </View>
       </View>
@@ -183,10 +214,10 @@ function Completion({ d }: { d: AdminDashboard }) {
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Txt weight="medium" size={text.body} style={{ flex: 1 }}>{s.label}</Txt>
               <Txt size={text.small} color={colors.muted}>{`${s.completed} / ${s.expected}`}</Txt>
-              <Txt weight="semibold" size={text.body} style={{ width: 52, textAlign: 'right' }}>{`${s.percent}%`}</Txt>
+              <Txt weight="semibold" size={text.body} color={s.percent < 25 && d.period?.is_open ? colors.urgentFg : colors.text} style={{ width: 52, textAlign: 'right' }}>{`${s.percent}%`}</Txt>
             </View>
             <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.track, overflow: 'hidden' }}>
-              <View style={{ width: `${s.percent}%`, height: 8, borderRadius: 4, backgroundColor: colors.navy }} />
+              <View style={{ width: `${s.percent}%`, height: 8, borderRadius: 4, backgroundColor: s.percent >= 100 ? colors.successFg : s.percent < 25 && d.period?.is_open ? colors.urgent : colors.navy }} />
             </View>
           </View>
         ))
@@ -210,11 +241,24 @@ function Faculty({ d }: { d: AdminDashboard }) {
               <Txt weight="semibold" size={text.body} numberOfLines={1}>{t.name}</Txt>
               <Txt size={text.small} color={colors.muted}>{tr(`${t.responses} responses`, `${t.responses} sagot`)}</Txt>
             </View>
-            <Txt weight="bold" size={text.title}>{formatRating(t.average)}</Txt>
+            <RatingMeter value={t.average} />
           </Pressable>
         ))
       )}
     </Panel>
+  );
+}
+
+/** A short bar and the score, coloured so strong and struggling teachers stand out at a glance. */
+function RatingMeter({ value }: { value: number | null }) {
+  const tone = value === null ? colors.muted : value >= 4 ? colors.successFg : value >= 3 ? colors.accent : colors.urgentFg;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+      <View style={{ width: 72, height: 8, borderRadius: 4, backgroundColor: colors.track, overflow: 'hidden' }}>
+        {value !== null && <View style={{ width: `${Math.max(4, ((value - 1) / 4) * 100)}%`, height: 8, borderRadius: 4, backgroundColor: tone }} />}
+      </View>
+      <Txt weight="bold" size={text.title} color={value === null ? colors.muted : colors.text} style={{ width: 42, textAlign: 'right' }}>{formatRating(value)}</Txt>
+    </View>
   );
 }
 

@@ -8,13 +8,12 @@ import { CriteriaBars, formatRating, TrendChart, weakestCriterion } from '@/comp
 import { Icon } from '@/components/Icon';
 import { FadeIn } from '@/components/Motion';
 import { AppBar, PageHeader } from '@/components/PageHeader';
-import { RichText } from '@/components/RichText';
 import { ScreenState } from '@/components/ScreenState';
 import { ProgressBar } from '@/components/ProgressRing';
 import { Bone } from '@/components/Skeleton';
 import { StatusChip } from '@/components/StatusChip';
 import { Txt } from '@/components/Txt';
-import { CommentCard, EmptyState, Panel, StatCard } from '@/components/ui';
+import { CommentCard, EmptyState, Panel, StatCard, StatRow } from '@/components/ui';
 import { WiseMascot, type Mood } from '@/components/WiseMascot';
 import { firstName, greetingWord, shortDate } from '@/lib/format';
 import { tr } from '@/lib/i18n';
@@ -43,6 +42,7 @@ export default function TeacherHome() {
   ) : (
     <>
       <RatingsPanel d={d} />
+      <FocusPanel d={d} />
       <CriteriaPanel d={d} />
     </>
   );
@@ -62,12 +62,31 @@ export default function TeacherHome() {
     >
       {phone ? <AppBar title={tr('Home', 'Home')} subtitle={d.semester?.name} /> : <PageHeader title={tr('Dashboard', 'Dashboard')} />}
       <Hero d={d} phone={phone} />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>
-        <StatCard icon="sparkle" label={tr('Student rating', 'Rating ng estudyante')} value={formatRating(d.overall.average)} hint={tr('out of 5', 'sa 5')} />
-        <StatCard icon="users" tone="brand" label={tr('Responses', 'Mga sagot')} value={String(d.overall.responses)} hint={tr('from students', 'mula sa estudyante')} />
-        {d.peer_evaluation !== false && <StatCard icon="layers" tone="green" label={tr('Peer rating', 'Peer rating')} value={formatRating(d.peer_overall.average)} hint={tr(`${d.peer_overall.responses} colleague reviews`, `${d.peer_overall.responses} review ng kasamahan`)} />}
-        <StatCard icon="book" tone="orange" label={tr('Classes', 'Mga klase')} value={String(d.subjects.length)} hint={d.semester?.name} />
-      </View>
+      <StatRow>
+        <StatCard
+          compact={phone}
+          icon="sparkle"
+          label={tr('Student rating', 'Rating ng estudyante')}
+          value={formatRating(d.overall.average)}
+          empty={tr('Not yet', 'Wala pa')}
+          spark={d.trend.map((t) => t.average)}
+          delta={d.trend.length >= 2 ? { value: d.trend[d.trend.length - 1].average - d.trend[d.trend.length - 2].average, caption: tr(`${d.trend[d.trend.length - 1].period} vs ${d.trend[d.trend.length - 2].period}`, `${d.trend[d.trend.length - 1].period} kumpara sa ${d.trend[d.trend.length - 2].period}`) } : null}
+          hint={tr('out of 5', 'sa 5')}
+        />
+        <StatCard compact={phone} icon="users" tone="brand" label={tr('Responses', 'Mga sagot')} value={String(d.overall.responses)} hint={tr('from students', 'mula sa estudyante')} />
+        {d.peer_evaluation !== false && (
+          <StatCard
+            compact={phone}
+            icon="layers"
+            tone="green"
+            label={tr('Peer rating', 'Peer rating')}
+            value={formatRating(d.peer_overall.average)}
+            empty={tr('No reviews yet', 'Wala pang review')}
+            hint={tr(`${d.peer_overall.responses} colleague review${d.peer_overall.responses === 1 ? '' : 's'}`, `${d.peer_overall.responses} review ng kasamahan`)}
+          />
+        )}
+        <StatCard compact={phone} icon="book" tone="orange" label={tr('Classes', 'Mga klase')} value={String(d.subjects.length)} hint={d.semester?.name} />
+      </StatRow>
       {desktop ? (
         <View style={{ flexDirection: 'row', gap: space.lg, alignItems: 'flex-start' }}>
           <View style={{ flex: 1.4, gap: space.lg }}>{left}</View>
@@ -122,10 +141,10 @@ function Hero({ d, phone }: { d: TeacherDashboard; phone: boolean }) {
     cta = { label: tr('Open my full report', 'Buksan ang buong report'), onPress: () => router.push('/teacher/report') };
   }
 
-  const sticker = phone ? 128 : 190;
+  const sticker = phone ? 112 : 190;
   return (
     <FadeIn>
-      <View style={{ backgroundColor: colors.frame, borderRadius: phone ? 30 : 36, paddingVertical: phone ? 22 : 30, paddingLeft: phone ? 22 : 34, paddingRight: sticker * (phone ? 0.8 : 0.95), minHeight: phone ? 150 : 176 }}>
+      <View style={{ backgroundColor: colors.frame, borderRadius: phone ? 30 : 36, paddingVertical: phone ? 22 : 30, paddingLeft: phone ? 22 : 34, paddingRight: phone ? sticker - 4 : sticker + 8, minHeight: phone ? 150 : 176 }}>
         <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: phone ? 30 : 36, overflow: 'hidden' }}>
           <View style={{ position: 'absolute', right: -50, top: -70, width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(255,255,255,0.07)' }} />
         </View>
@@ -142,7 +161,7 @@ function Hero({ d, phone }: { d: TeacherDashboard; phone: boolean }) {
             <Icon name="chevronRight" size={14} color="#0B0B6E" strokeWidth={2.4} />
           </Pressable>
         )}
-        <View pointerEvents="none" style={{ position: 'absolute', right: phone ? 0 : 14, bottom: 0 }}>
+        <View pointerEvents="none" style={{ position: 'absolute', right: phone ? -4 : 14, bottom: 0 }}>
           <WiseMascot size={sticker} mood={mood} shadow={false} />
         </View>
       </View>
@@ -177,7 +196,9 @@ function RatingsPanel({ d }: { d: TeacherDashboard }) {
         <TrendChart points={d.trend} />
       ) : (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm }}>
-          <WiseMascot size={84} mood="think" float={false} shadow={false} />
+          <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: colors.chip, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="trendUp" size={24} color={colors.accent} strokeWidth={2} />
+          </View>
           <Txt size={text.body} color={colors.muted} style={{ flex: 1, lineHeight: 22 }}>
             {d.trend.length === 1
               ? tr(`So far: ${d.trend[0].average.toFixed(2)} in ${d.trend[0].period}. Your trend line appears after the next evaluation period.`, `Sa ngayon: ${d.trend[0].average.toFixed(2)} sa ${d.trend[0].period}. Lalabas ang trend pagkatapos ng susunod na period.`)
@@ -190,29 +211,50 @@ function RatingsPanel({ d }: { d: TeacherDashboard }) {
 }
 
 function CriteriaPanel({ d }: { d: TeacherDashboard }) {
-  const router = useRouter();
   const weak = weakestCriterion(d.criteria);
   if (d.criteria.length === 0) return null;
   return (
     <Panel title={tr('By criteria', 'Ayon sa pamantayan')} subtitle={tr('What students rate highest and lowest', 'Ang pinakamataas at pinakamababang rating ng estudyante')}>
       <CriteriaBars criteria={d.criteria} />
-      {weak && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: colors.brandSoft, borderRadius: 20, padding: space.md }}>
-          <WiseMascot size={64} mood="idea" float={false} shadow={false} />
-          <View style={{ flex: 1, gap: space.xs }}>
-            <RichText
-              text={tr(`**Tip:** “${weak.category}” is your focus area. Small changes here lift your overall rating the most.`, `**Tip:** “${weak.category}” ang focus area mo. Ang maliliit na pagbabago rito ang pinakamalaking makakapagpataas ng rating mo.`)}
-              size={text.body}
-              color={colors.text}
-              boldColor={colors.accent}
-              style={{ lineHeight: 21 }}
-            />
-            <Pressable accessibilityRole="link" onPress={() => router.push('/teacher/wise')} style={{ alignSelf: 'flex-start', minHeight: 32, justifyContent: 'center' }}>
-              <Txt weight="semibold" size={text.body} color={colors.accent}>{tr('Ask Professor Wise for ideas →', 'Humingi ng ideya kay Professor Wise →')}</Txt>
-            </Pressable>
-          </View>
-        </View>
+      {weak && !(d.focus && d.focus.length) && (
+        <Txt size={text.small} color={colors.muted}>{tr(`Focus area: ${weak.category}`, `Focus area: ${weak.category}`)}</Txt>
       )}
+    </Panel>
+  );
+}
+
+/** "What to work on": the lowest-rated areas, each with a few small, concrete things to try. */
+function FocusPanel({ d }: { d: TeacherDashboard }) {
+  const router = useRouter();
+  const focus = d.focus ?? [];
+  if (focus.length === 0) return null;
+  return (
+    <Panel title={tr('What to work on', 'Ano ang pagtutuunan')} subtitle={tr('Small changes in your lowest-rated areas lift your overall rating the most', 'Ang maliliit na pagbabago sa pinakamababang rating ang pinakamalaking makakapagpataas ng kabuuang rating mo')}>
+      {focus.map((f, i) => (
+        <View key={f.question_id} style={{ gap: space.sm, paddingTop: i ? space.md : 0, borderTopWidth: i ? 1 : 0, borderTopColor: colors.borderSoft }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+            <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: colors.pendingBg, alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="lightbulb" size={20} color={colors.pendingFg} strokeWidth={1.9} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Txt weight="semibold" size={text.bodyLg} numberOfLines={1}>{f.category}</Txt>
+              <Txt size={text.small} color={colors.muted}>{tr(`Rated ${formatRating(f.average)} out of 5`, `${formatRating(f.average)} sa 5 ang rating`)}</Txt>
+            </View>
+          </View>
+          {f.tips.map((tip, k) => (
+            <View key={k} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, paddingLeft: 4 }}>
+              <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: colors.chip, alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
+                <Txt weight="bold" size={text.caption} color={colors.accent}>{String(k + 1)}</Txt>
+              </View>
+              <Txt size={text.body} color={colors.textSoft} style={{ flex: 1, lineHeight: 21 }}>{tip}</Txt>
+            </View>
+          ))}
+        </View>
+      ))}
+      <Pressable accessibilityRole="link" onPress={() => router.push('/teacher/wise')} style={({ hovered }: { hovered?: boolean }) => ({ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36, paddingHorizontal: 12, marginLeft: -12, borderRadius: 999, backgroundColor: hovered ? colors.surface : 'transparent' })}>
+        <Txt weight="semibold" size={text.body} color={colors.accent}>{tr('Ask Professor Wise for more ideas', 'Humingi pa ng ideya kay Professor Wise')}</Txt>
+        <Icon name="chevronRight" size={14} color={colors.accent} strokeWidth={2.4} />
+      </Pressable>
     </Panel>
   );
 }
