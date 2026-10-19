@@ -40,7 +40,7 @@ export function SetupChecklist() {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
         <WiseMascot size={84} mood={all ? 'party' : 'teach'} float={false} shadow={false} />
         <View style={{ flex: 1, gap: 6 }}>
-          <Txt weight="bold" size={text.title} accessibilityRole="header">{all ? tr('Your school is ready!', 'Handa na ang paaralan mo!') : tr('Set up your school', 'I-set up ang paaralan mo')}</Txt>
+          <Txt weight="bold" size={text.title} accessibilityRole="header">{all ? tr('Your school is set up', 'Naka-set up na ang paaralan mo') : tr('Set up your school', 'I-set up ang paaralan mo')}</Txt>
           <Txt size={text.small} color={colors.muted}>{tr(`${setup.done} of ${setup.total} done · about 30 minutes in total`, `${setup.done} sa ${setup.total} tapos · mga 30 minuto lahat`)}</Txt>
           <ProgressBar value={setup.done / setup.total} height={8} />
         </View>

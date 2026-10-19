@@ -45,7 +45,7 @@ export function BadgeCard({ badge, name, compact }: { badge: EarnedBadge; name?:
         </View>
       </View>
       <View style={{ alignItems: compact ? 'flex-start' : 'center', gap: 2, flex: compact ? 1 : undefined }}>
-        <Txt weight="bold" size={compact ? 12 : 13} color="#FFC53D" style={{ letterSpacing: 1.6 }}>FEEDBACK HERO</Txt>
+        <Txt weight="bold" size={compact ? 12 : 13} color="#FFC53D" >Feedback Hero</Txt>
         <Txt weight="bold" size={compact ? 17 : 24} color="#FFFFFF" style={{ textAlign: compact ? 'left' : 'center' }}>{tr(`${badge.period} · all done`, `${badge.period} · tapos lahat`)}</Txt>
         <Txt size={compact ? 13 : 15} color="#C9CCF0" style={{ textAlign: compact ? 'left' : 'center' }}>
           {`${name ? `${name} · ` : ''}${new Date(badge.earnedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`}
@@ -91,7 +91,7 @@ export function BadgeCelebration({ data }: { data: StudentDashboard }) {
       const nav = typeof navigator !== 'undefined' ? (navigator as Navigator & { share?: unknown }) : undefined;
       if (Platform.OS === 'web' && nav && typeof nav.share !== 'function') {
         await nav.clipboard?.writeText(message);
-        useUI.getState().pushToast({ title: tr('Copied!', 'Nakopya na!'), body: tr('Paste it anywhere to share your badge.', 'I-paste kahit saan para i-share ang badge mo.'), tone: 'success' });
+        useUI.getState().pushToast({ title: tr('Copied', 'Nakopya na'), body: tr('Paste it anywhere to share your badge.', 'I-paste kahit saan para i-share ang badge mo.'), tone: 'success' });
       } else {
         await Share.share({ message });
       }
@@ -117,7 +117,7 @@ export function BadgeCelebration({ data }: { data: StudentDashboard }) {
           </View>
           <View style={{ flexDirection: 'row', gap: 10, alignSelf: 'stretch' }}>
             <Button title={tr('Share', 'I-share')} variant="outline" onPress={share} style={{ flex: 1 }} />
-            <Button title={tr('Awesome!', 'Ang galing!')} onPress={() => setBadge(null)} style={{ flex: 1.3 }} />
+            <Button title={tr('Close', 'Isara')} onPress={() => setBadge(null)} style={{ flex: 1.3 }} />
           </View>
           <Pressable accessibilityRole="button" onPress={() => setBadge(null)} style={{ minHeight: 32 }}>
             <Txt size={13} color={colors.muted}>{tr('You can find it again in your profile.', 'Makikita mo ulit ito sa profile mo.')}</Txt>

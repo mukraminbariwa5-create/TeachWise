@@ -64,17 +64,12 @@ export function GettingStarted({ data, compact }: { data: StudentDashboard; comp
             <Txt weight="bold" size={compact ? 14 : 16} color={colors.text}>{`${doneCount}/${steps.length}`}</Txt>
           </ProgressRing>
           <View style={{ flex: 1, gap: 2 }}>
-            <Txt weight="semibold" size={12} color={colors.muted} style={{ letterSpacing: 1.2 }}>
-              {compact ? tr(`GETTING STARTED · ${doneCount}/${steps.length}`, `PANIMULA · ${doneCount}/${steps.length}`) : tr(`GETTING STARTED · ${doneCount} OF ${steps.length} DONE`, `PANIMULA · ${doneCount} SA ${steps.length} TAPOS NA`)}
-            </Txt>
-            <Txt weight="semibold" size={compact ? 17 : 20}>{doneCount >= 3 ? tr('Almost there!', 'Malapit na!') : tr('Let’s take it step by step', 'Isa-isahin natin')}</Txt>
+            <Txt weight="semibold" size={compact ? 17 : 20}>{tr('Getting started', 'Panimula')}</Txt>
+            <Txt size={13} color={colors.muted}>{tr('These tick themselves off as you go.', 'Kusang natsetsekan habang tumutuloy ka.')}</Txt>
           </View>
           <Pressable accessibilityRole="button" accessibilityLabel={tr('Hide getting started', 'Itago ang panimula')} onPress={close} style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' }}>
             <Icon name="close" size={16} color={colors.muted} strokeWidth={2.2} />
           </Pressable>
-        </View>
-        <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.track, overflow: 'hidden', marginBottom: 10 }}>
-          <View style={{ width: `${(doneCount / steps.length) * 100}%` as `${number}%`, height: '100%', backgroundColor: colors.successFg, borderRadius: 3 }} />
         </View>
         {steps.map((s, i) => (
           <View key={s.title} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.borderSoft }}>

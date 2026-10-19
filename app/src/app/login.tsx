@@ -14,7 +14,7 @@ import { FadeIn } from '@/components/Motion';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { RichText } from '@/components/RichText';
 import { Txt } from '@/components/Txt';
-import { WiseMascot, type Mood } from '@/components/WiseMascot';
+import { WiseHead, WiseMascot, type HeadMood, type Mood } from '@/components/WiseMascot';
 import { tr } from '@/lib/i18n';
 import { usePickedSchool } from '@/lib/school';
 import { useLayoutSize } from '@/lib/useLayout';
@@ -28,8 +28,8 @@ function useWiseLine(mode: Mode): { mood: Mood; line: string } {
   return (
     c ??
     (mode === 'signup'
-      ? { mood: 'hello', line: tr('Hi! Let’s **set up your account**. Just 3 quick steps.', 'Hi! **Gawin natin ang account mo**. 3 mabilis na hakbang lang.') }
-      : { mood: 'happy', line: tr('Good to see you **again**! Sign in to continue.', 'Masaya akong makita ka **ulit**! Mag-sign in para magpatuloy.') })
+      ? { mood: 'hello', line: tr('Hi! Let’s set up your account. Just 3 quick steps.', 'Hi! Gawin natin ang account mo. 3 mabilis na hakbang lang.') }
+      : { mood: 'happy', line: tr('Good to see you again! Sign in to continue.', 'Masaya akong makita ka ulit! Mag-sign in para magpatuloy.') })
   );
 }
 
@@ -128,12 +128,6 @@ export default function AuthScreen() {
     </FadeIn>
   );
 
-  const pitch = [
-    tr('Rate each teacher in about 3 minutes', 'I-rate ang bawat guro sa loob ng mga 3 minuto'),
-    tr('Anonymous: your name is never shown', 'Anonymous: hindi kailanman ipinapakita ang pangalan mo'),
-    tr('Professor Wise guides you every step', 'Gagabayan ka ni Professor Wise sa bawat hakbang'),
-  ];
-
   const header = (logoSize: number) => <Logo size={logoSize} onDark />;
 
   if (!wide) {
@@ -167,16 +161,9 @@ export default function AuthScreen() {
               </FadeIn>
               <FadeIn delay={260} style={{ alignItems: 'center', gap: 18, maxWidth: 480 }}>
                 <Txt weight="bold" size={32} color="#FFFFFF" style={{ textAlign: 'center', lineHeight: 40 }}>
-                  {tr('Better teaching starts with honest feedback.', 'Nagsisimula ang mas mahusay na pagtuturo sa tapat na feedback.')}
+                  {tr('Rate your teachers. They never see your name.', 'I-rate ang mga guro mo. Hindi nila makikita ang pangalan mo.')}
                 </Txt>
-                <View style={{ gap: 10, alignSelf: 'center' }}>
-                  {pitch.map((p) => (
-                    <View key={p} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <Icon name="check" size={18} color="#8CF0B4" strokeWidth={2.6} />
-                      <Txt size={16} color={colors.onFrameMuted}>{p}</Txt>
-                    </View>
-                  ))}
-                </View>
+                <ScalePreview />
               </FadeIn>
             </View>
           </View>
@@ -186,6 +173,26 @@ export default function AuthScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+/** The real 1–5 scale students will use, shown small: the clearest way to say what TeachWise is. */
+function ScalePreview() {
+  const faces: HeadMood[] = ['tired', 'squint', 'neutral', 'grin', 'laugh'];
+  const labels = [tr('Poor', 'Mahina'), tr('Fair', 'Katamtaman'), tr('Good', 'Mabuti'), tr('Very good', 'Napakabuti'), tr('Excellent', 'Napakahusay')];
+  return (
+    <View style={{ alignItems: 'center', gap: 12 }} accessible accessibilityLabel={tr('Each question is rated from 1, poor, to 5, excellent. About three minutes per teacher.', 'Bawat tanong ay nire-rate mula 1, mahina, hanggang 5, napakahusay. Mga tatlong minuto bawat guro.')}>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {faces.map((m, i) => (
+          <View key={m} style={{ width: 78, paddingVertical: 10, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', gap: 2 }}>
+            <WiseHead size={46} mood={m} />
+            <Txt weight="bold" size={14} color="#FFFFFF">{String(i + 1)}</Txt>
+            <Txt size={12} color={colors.onFrameMuted} numberOfLines={1}>{labels[i]}</Txt>
+          </View>
+        ))}
+      </View>
+      <Txt size={15} color={colors.onFrameMuted}>{tr('A few short questions, about three minutes per teacher.', 'Ilang maiikling tanong, mga tatlong minuto bawat guro.')}</Txt>
+    </View>
   );
 }
 

@@ -143,7 +143,7 @@ export function SchoolPicker({ visible, onClose, onPick }: { visible: boolean; o
           }}
           style={{ minHeight: 36, justifyContent: 'center', alignSelf: 'flex-start' }}
         >
-          <Txt weight="semibold" size={text.body} color={colors.accent}>{tr('Register your school →', 'Irehistro ang paaralan mo →')}</Txt>
+          <Txt weight="semibold" size={text.body} color={colors.accent}>{tr('Register your school', 'Irehistro ang paaralan mo')}</Txt>
         </Pressable>
       </View>
     </Sheet>

@@ -65,15 +65,15 @@ export default function TeacherHome() {
       <StatRow>
         <StatCard
           compact={phone}
-          icon="sparkle"
+          icon="star"
           label={tr('Student rating', 'Rating ng estudyante')}
           value={formatRating(d.overall.average)}
           empty={tr('Not yet', 'Wala pa')}
           spark={d.trend.map((t) => t.average)}
           delta={d.trend.length >= 2 ? { value: d.trend[d.trend.length - 1].average - d.trend[d.trend.length - 2].average, caption: tr(`${d.trend[d.trend.length - 1].period} vs ${d.trend[d.trend.length - 2].period}`, `${d.trend[d.trend.length - 1].period} kumpara sa ${d.trend[d.trend.length - 2].period}`) } : null}
-          hint={tr('out of 5', 'sa 5')}
+          hint={tr('Out of 5, all periods', 'Sa 5, lahat ng period')}
         />
-        <StatCard compact={phone} icon="users" tone="brand" label={tr('Responses', 'Mga sagot')} value={String(d.overall.responses)} hint={tr('from students', 'mula sa estudyante')} />
+        <StatCard compact={phone} icon="users" tone="brand" label={tr('Responses', 'Mga sagot')} value={String(d.overall.responses)} hint={tr('From students', 'Mula sa estudyante')} />
         {d.peer_evaluation !== false && (
           <StatCard
             compact={phone}
@@ -134,7 +134,7 @@ function Hero({ d, phone }: { d: TeacherDashboard; phone: boolean }) {
       change == null
         ? tr(`Based on ${d.overall.responses} anonymous evaluations.`, `Batay sa ${d.overall.responses} anonymous na evaluation.`)
         : change >= 0.05
-          ? tr(`Up ${change.toFixed(2)} from the last period. Great progress!`, `Tumaas ng ${change.toFixed(2)} mula sa nakaraang period. Magaling!`)
+          ? tr(`Up ${change.toFixed(2)} from the last period.`, `Tumaas ng ${change.toFixed(2)} mula sa nakaraang period.`)
           : change <= -0.05
             ? tr(`Down ${Math.abs(change).toFixed(2)} from the last period. Your focus area below can help.`, `Bumaba ng ${Math.abs(change).toFixed(2)} mula sa nakaraang period. Makakatulong ang focus area sa ibaba.`)
             : tr('Steady compared with the last period.', 'Halos pareho sa nakaraang period.');
@@ -158,7 +158,6 @@ function Hero({ d, phone }: { d: TeacherDashboard; phone: boolean }) {
             style={({ hovered }: { hovered?: boolean }) => ({ marginTop: phone ? 14 : 18, alignSelf: 'flex-start', height: phone ? 42 : 48, paddingHorizontal: phone ? 16 : 22, borderRadius: 999, backgroundColor: hovered ? '#E9EAFB' : '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 8 })}
           >
             <Txt weight="semibold" size={phone ? 14 : 16} color="#0B0B6E" numberOfLines={1}>{cta.label}</Txt>
-            <Icon name="chevronRight" size={14} color="#0B0B6E" strokeWidth={2.4} />
           </Pressable>
         )}
         <View pointerEvents="none" style={{ position: 'absolute', right: phone ? -4 : 14, bottom: 0 }}>
@@ -253,7 +252,6 @@ function FocusPanel({ d }: { d: TeacherDashboard }) {
       ))}
       <Pressable accessibilityRole="link" onPress={() => router.push('/teacher/wise')} style={({ hovered }: { hovered?: boolean }) => ({ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36, paddingHorizontal: 12, marginLeft: -12, borderRadius: 999, backgroundColor: hovered ? colors.surface : 'transparent' })}>
         <Txt weight="semibold" size={text.body} color={colors.accent}>{tr('Ask Professor Wise for more ideas', 'Humingi pa ng ideya kay Professor Wise')}</Txt>
-        <Icon name="chevronRight" size={14} color={colors.accent} strokeWidth={2.4} />
       </Pressable>
     </Panel>
   );

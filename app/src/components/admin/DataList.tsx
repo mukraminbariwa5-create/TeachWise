@@ -109,7 +109,7 @@ export function DataList<T>({
     <View style={[{ backgroundColor: colors.card, borderRadius: 24, overflow: 'hidden' }, shadowStyle('soft')]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.sm, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.borderSoft }}>
         {columns.map((c) => (
-          <Txt key={c.label} weight="semibold" size={text.caption} color={colors.muted} style={{ flex: c.flex ?? 1, textAlign: c.align ?? 'left', textTransform: 'uppercase', letterSpacing: 0.6 }}>{c.label}</Txt>
+          <Txt key={c.label} weight="semibold" size={text.caption} color={colors.muted} style={{ flex: c.flex ?? 1, textAlign: c.align ?? 'left' }}>{c.label}</Txt>
         ))}
         {right && <View style={{ width: 120 }} />}
       </View>

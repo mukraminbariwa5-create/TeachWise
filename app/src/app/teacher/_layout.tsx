@@ -11,7 +11,7 @@ const navItems = (): NavItem[] => [
   { href: '/teacher', icon: 'home', label: tr('Home', 'Home') },
   { href: '/teacher/feedback', icon: 'chat', label: tr('Feedback', 'Feedback') },
   { href: '/teacher/report', icon: 'barChart', label: tr('My report', 'Report ko') },
-  { href: '/teacher/wise', icon: 'sparkle', label: tr('Ask Wise', 'Tanong') },
+  { href: '/teacher/wise', icon: 'glasses', label: tr('Ask Wise', 'Tanong') },
 ];
 
 const settingsItem = (): NavItem => ({ href: '/teacher/settings', icon: 'settings', label: tr('Settings', 'Settings') });
@@ -48,7 +48,7 @@ function TeacherShell() {
       if (pendingPeers > 0) return { text: tr(`**${pendingPeers} colleague${pendingPeers > 1 ? 's' : ''}** still waiting for your peer evaluation.`, `May **${pendingPeers} kasamahan** pang naghihintay ng peer evaluation mo.`), mood: 'point' };
       const weak = weakestCriterion(d.criteria);
       if (weak) return { text: tr(`Your students rate **${weak.category}** lowest. Ask me for ideas to improve it.`, `Pinakamababa ang **${weak.category}** sa rating ng mga estudyante. Magtanong sa akin ng mga ideya.`), mood: 'idea' };
-      return { text: tr('Results appear here **as soon as** students submit.', 'Lalabas dito ang resulta **agad** pagkapasa ng mga estudyante.'), mood: 'working' };
+      return { text: tr('Results appear here as soon as students submit.', 'Lalabas dito ang resulta agad pagkapasa ng mga estudyante.'), mood: 'working' };
     }
     if (path.startsWith('/teacher/feedback')) return { text: tr('Comments are **anonymous**. Look for patterns, not one-off remarks.', '**Anonymous** ang mga komento. Hanapin ang pattern, hindi ang iisang puna.'), mood: 'teach' };
     if (path.startsWith('/teacher/report')) return { text: tr('Use **Print** to save this report as a **PDF** for your portfolio.', 'Gamitin ang **Print** para i-save ito bilang **PDF** para sa portfolio mo.'), mood: 'writing' };

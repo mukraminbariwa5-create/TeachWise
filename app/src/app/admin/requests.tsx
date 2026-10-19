@@ -118,7 +118,7 @@ function Inbox() {
         <Chip label={tr('Done', 'Tapos')} on={status === 'closed'} onPress={() => setStatus('closed')} />
       </ScrollView>
       {rows.length === 0 && !list.isLoading ? (
-        <EmptyState mood="happy" title={status === 'open' ? tr('Inbox zero!', 'Walang laman ang inbox!') : tr('Nothing here yet', 'Wala pa rito')} message={status === 'open' ? tr('Messages and problem reports from users show up here.', 'Lalabas dito ang mga mensahe at ulat ng problema mula sa mga user.') : undefined} />
+        <EmptyState mood="happy" title={status === 'open' ? tr('No open messages', 'Walang bukas na mensahe') : tr('Nothing here yet', 'Wala pa rito')} message={status === 'open' ? tr('Messages and problem reports from users show up here.', 'Lalabas dito ang mga mensahe at ulat ng problema mula sa mga user.') : undefined} />
       ) : (
         rows.map((m) => <MessageCard key={m.id} m={m} onDone={() => close.mutate(m.id, { onSuccess: () => toast({ title: tr('Marked as done', 'Minarkahang tapos'), tone: 'success' }) })} />)
       )}

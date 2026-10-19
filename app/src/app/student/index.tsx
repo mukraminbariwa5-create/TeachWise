@@ -59,11 +59,11 @@ export default function StudentHome() {
 function tourSteps(data: StudentDashboard): TourStep[] {
   const canEvaluate = !!data.period && data.teachers.length > 0;
   return [
-    { target: 'hero', mood: 'lecture', title: tr('Your next step', 'Ang susunod mong gagawin'), text: tr('This card always tells you **what to do next**, and how long it will take.', 'Laging sinasabi ng card na ito **kung ano ang susunod**, at gaano katagal ito.') },
-    { target: 'teachers', mood: 'wink', title: tr('Your teachers', 'Ang mga guro mo'), text: tr('These are the teachers you can evaluate this period. **Tap one** to see their details.', 'Ito ang mga gurong puwede mong i-evaluate ngayon. **Pindutin ang isa** para makita ang detalye.') },
+    { target: 'hero', mood: 'lecture', title: tr('Your next step', 'Ang susunod mong gagawin'), text: tr('This card always tells you what to do next, and how long it will take.', 'Laging sinasabi ng card na ito kung ano ang susunod, at gaano katagal ito.') },
+    { target: 'teachers', mood: 'wink', title: tr('Your teachers', 'Ang mga guro mo'), text: tr('These are the teachers you can evaluate this period. Tap one to see their details.', 'Ito ang mga gurong puwede mong i-evaluate ngayon. Pindutin ang isa para makita ang detalye.') },
     ...(canEvaluate ? [{ target: 'evaluate', mood: 'teach' as const, title: tr('Evaluate in 3 minutes', 'Mag-evaluate sa loob ng 3 minuto'), text: tr('Tap **Evaluate Now** to rate a teacher. It’s **anonymous**, so be honest.', 'Pindutin ang **Evaluate Now** para i-rate ang guro. **Anonymous** ito, kaya maging tapat.') }] : []),
-    { target: 'progress', mood: 'proud', title: tr('Watch your progress', 'Bantayan ang progress mo'), text: tr('This ring fills up as you go. Finish them all and **I’ll celebrate with you**!', 'Napupuno ang bilog habang tumatagal. Tapusin lahat at **magdiriwang tayo**!') },
-    { target: 'ask', mood: 'hello', title: tr('I’m always here', 'Lagi akong nandito'), text: tr('Stuck on something? **Ask me** anything about evaluations, any time.', 'May hindi ka maintindihan? **Tanungin mo ako** tungkol sa evaluation, kahit kailan.') },
+    { target: 'progress', mood: 'proud', title: tr('Watch your progress', 'Bantayan ang progress mo'), text: tr('This ring fills up as you go. Finish them all and I’ll celebrate with you!', 'Napupuno ang bilog habang tumatagal. Tapusin lahat at magdiriwang tayo!') },
+    { target: 'ask', mood: 'hello', title: tr('I’m always here', 'Lagi akong nandito'), text: tr('Stuck on something? Ask me anything about evaluations, any time.', 'May hindi ka maintindihan? Tanungin mo ako tungkol sa evaluation, kahit kailan.') },
   ];
 }
 
@@ -97,7 +97,7 @@ function useDashboardTour(data: StudentDashboard | undefined) {
     dismiss: () => {
       setOffer(false);
       setPref('tourDone', '1');
-      toast({ title: tr('No problem!', 'Walang problema!'), body: tr('You can take the tour any time from Help.', 'Puwede kang mag-tour kahit kailan mula sa Tulong.'), mood: 'wink' });
+      toast({ title: tr('Tour hidden', 'Itinago ang tour'), body: tr('You can take the tour any time from Help.', 'Puwede kang mag-tour kahit kailan mula sa Tulong.'), mood: 'wink' });
     },
   };
 }
@@ -173,14 +173,7 @@ function useDashboardState(data: StudentDashboard) {
   const nextPending = data.teachers.find(canEvaluate);
   const allDone = data.progress.total > 0 && data.progress.completed === data.progress.total;
 
-  /** The navy pill under "Schedule" switches between teachers. */
-  const cycleSelected = () => {
-    if (!data.teachers.length) return;
-    const i = data.teachers.findIndex((t) => t.offering_id === selected?.offering_id);
-    setSelectedId(data.teachers[(i + 1) % data.teachers.length].offering_id);
-  };
-
-  return { search, setSearch, teachers, selected, setSelectedId, canEvaluate, open, nextPending, allDone, cycleSelected, urgent: urgentHours(data), filter, setFilter, counts, hasDraft };
+  return { search, setSearch, teachers, selected, setSelectedId, canEvaluate, open, nextPending, allDone, urgent: urgentHours(data), filter, setFilter, counts, hasDraft };
 }
 
 type Filter = 'all' | 'pending' | 'done';
@@ -273,7 +266,6 @@ function WebDashboard({ data, tour }: { data: StudentDashboard; tour: TourContro
         <PageHeader
           title={tr('Dashboard', 'Dashboard')}
           search={{ value: s.search, onChange: s.setSearch, placeholder: tr('Search', 'Maghanap') }}
-          action={s.nextPending ? { icon: 'plus', label: tr(`Start evaluating ${s.nextPending.teacher.name}`, `Simulan ang pag-evaluate kay ${s.nextPending.teacher.name}`), onPress: () => s.open(s.nextPending!) } : undefined}
         >
           {s.urgent !== null && !s.allDone && <UrgentChip hours={s.urgent} />}
         </PageHeader>
@@ -301,7 +293,7 @@ function WebDashboard({ data, tour }: { data: StudentDashboard; tour: TourContro
                     s.search
                       ? tr('No teacher matches your search.', 'Walang gurong tugma sa hinahanap mo.')
                       : s.filter === 'pending'
-                        ? tr('Nothing pending. You’re all caught up!', 'Wala nang natitira. Tapos ka na!')
+                        ? tr('Nothing left to evaluate.', 'Wala nang natitirang ie-evaluate.')
                         : s.filter === 'done'
                           ? tr('You haven’t evaluated anyone yet.', 'Wala ka pang na-evaluate.')
                           : tr('No classes are assigned to your section yet. Please check with your admin.', 'Wala pang klaseng naka-assign sa section mo. Pakitanong sa admin.')
@@ -321,7 +313,6 @@ function WebDashboard({ data, tour }: { data: StudentDashboard; tour: TourContro
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
                 <Txt weight="semibold" size={30} accessibilityRole="header" style={{ flex: 1 }}>{tr('Schedule', 'Iskedyul')}</Txt>
                 <Txt size={16} color={colors.textSoft}>{shortDate(new Date().toISOString())}</Txt>
-                <NavyPill text={shortTeacher(s.selected.teacher.name)} onPress={s.cycleSelected} />
               </View>
 
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 38 }}>
@@ -361,8 +352,9 @@ function WebDashboard({ data, tour }: { data: StudentDashboard; tour: TourContro
 function TeacherRow({ t, selected, onSelect, onOpen, disabled, draft }: { t: Teacher; selected: boolean; onSelect: () => void; onOpen: () => void; disabled: boolean; draft?: boolean }) {
   return (
     <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
+      // A radio (not a button): picking a row selects the teacher, and the row holds its own action button.
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
       accessibilityLabel={`${t.teacher.name}, ${t.subject.name}, ${t.status === 'completed' ? tr('evaluated', 'tapos na') : tr('pending', 'hindi pa')}`}
       onPress={onSelect}
       style={({ hovered }: { hovered?: boolean }) => [
@@ -383,7 +375,7 @@ function TeacherRow({ t, selected, onSelect, onOpen, disabled, draft }: { t: Tea
   );
 }
 
-/** The "••" from the design. On hover it opens up into a labelled button so it's clear what it does. */
+/** The row's action, always visible and labelled: Evaluate, Continue or View. */
 function DotsAction({ label, teacher, disabled, onPress }: { label: string; teacher: string; disabled: boolean; onPress: () => void }) {
   return (
     <Pressable
@@ -391,31 +383,22 @@ function DotsAction({ label, teacher, disabled, onPress }: { label: string; teac
       accessibilityLabel={`${label} ${teacher}`}
       disabled={disabled}
       onPress={onPress}
-      style={({ hovered }: { hovered?: boolean }) => ({
-        height: 40,
-        minWidth: 44,
-        paddingHorizontal: hovered ? 14 : 0,
+      style={({ hovered, pressed }: { hovered?: boolean; pressed?: boolean }) => ({
+        height: 38,
+        minWidth: 92,
+        paddingHorizontal: 16,
         borderRadius: 999,
+        borderWidth: 1.5,
+        borderColor: disabled ? colors.border : colors.navy,
         backgroundColor: hovered && !disabled ? colors.navy : 'transparent',
-        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 6,
+        transform: [{ scale: pressed && !disabled ? 0.96 : 1 }],
       })}
     >
-      {({ hovered }: { hovered?: boolean }) =>
-        hovered && !disabled ? (
-          <>
-            <Txt weight="semibold" size={14} color="#FFFFFF">{label}</Txt>
-            <Icon name="chevronRight" size={14} color="#FFFFFF" strokeWidth={2.4} />
-          </>
-        ) : (
-          <View style={{ flexDirection: 'row', gap: 4, opacity: disabled ? 0.35 : 1 }}>
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.text }} />
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.text }} />
-          </View>
-        )
-      }
+      {({ hovered }: { hovered?: boolean }) => (
+        <Txt weight="semibold" size={14} color={disabled ? colors.muted : hovered ? '#FFFFFF' : colors.accent}>{label}</Txt>
+      )}
     </Pressable>
   );
 }
@@ -475,7 +458,7 @@ function SideCard({ data, allDone, phone, onOpen }: { data: StudentDashboard; al
               </View>
               <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                 <Txt weight="semibold" size={phone ? 16 : 18} numberOfLines={2}>{sub.name}</Txt>
-                <Txt size={14} color={colors.textSoft} numberOfLines={1}>{[`${sub.units} ${tr('Units', 'Yunit')}`, sub.code, t ? shortTeacher(t.teacher.name) : null].filter(Boolean).join(' · ')}</Txt>
+                <Txt size={14} color={colors.textSoft} numberOfLines={1}>{t ? tr(`${t.teacher.name}, ${sub.units} units`, `${t.teacher.name}, ${sub.units} yunit`) : tr(`${sub.units} units`, `${sub.units} yunit`)}</Txt>
               </View>
               {t && !(blocked && !done) && <Icon name="chevronRight" size={18} color={colors.muted} strokeWidth={2.2} />}
             </Pressable>
@@ -529,29 +512,20 @@ function WiseTip() {
   const wise = useWise();
   if (!wise.data?.tip) return null;
 
+  // A note from Professor Wise, set like a speech bubble rather than another navy banner.
   return (
-    <View style={{ backgroundColor: colors.frame, borderRadius: 32, padding: 26, paddingTop: 22, gap: 14 }}>
-      <View pointerEvents="none" style={{ position: 'absolute', right: -40, bottom: -50, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.05)' }} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View style={{ flex: 1, gap: 2 }}>
-          <View style={{ alignSelf: 'flex-start', height: 26, paddingHorizontal: 10, borderRadius: 999, backgroundColor: 'rgba(142,144,255,0.22)', justifyContent: 'center', marginBottom: 6 }}>
-            <Txt weight="semibold" size={12} color="#C9CBFF" style={{ letterSpacing: 0.6 }}>{tr('TIP FOR YOU', 'TIP PARA SA IYO')}</Txt>
-          </View>
-          <Txt weight="semibold" size={19} color="#FFFFFF">{tr('Professor Wise says', 'Sabi ni Professor Wise')}</Txt>
-        </View>
-        <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="lightbulb" size={26} color="#FFD66B" strokeWidth={1.9} />
-        </View>
+    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm }}>
+      <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2, borderColor: colors.brandSoft }}>
+        <WiseHead size={38} mood="wink" />
       </View>
-      <Txt size={16} color="#FFFFFF" style={{ lineHeight: 23 }}>{wise.data.tip}</Txt>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push('/student/wise')}
-        style={({ hovered }: { hovered?: boolean }) => ({ alignSelf: 'flex-start', height: 44, paddingHorizontal: 20, borderRadius: 999, backgroundColor: hovered ? '#E9EAFB' : '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 8 })}
-      >
-        <Txt weight="semibold" size={15} color="#0B0B6E">{tr('Ask Professor Wise', 'Magtanong kay Professor Wise')}</Txt>
-        <Icon name="chevronRight" size={14} color="#0B0B6E" strokeWidth={2.4} />
-      </Pressable>
+      <View style={{ flex: 1, backgroundColor: colors.brandSoft, borderRadius: radius.md, borderBottomLeftRadius: 6, padding: space.lg, gap: space.sm }}>
+        <Txt size={16} color={colors.text} style={{ lineHeight: 23 }}>{wise.data.tip}</Txt>
+        <Pressable accessibilityRole="link" onPress={() => router.push('/student/wise')} style={{ alignSelf: 'flex-start', minHeight: 32, justifyContent: 'center' }}>
+          {({ hovered }: { hovered?: boolean }) => (
+            <Txt weight="semibold" size={15} color={colors.accent} style={{ textDecorationLine: hovered ? 'underline' : 'none' }}>{tr('Ask Professor Wise something else', 'Magtanong pa kay Professor Wise')}</Txt>
+          )}
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -577,8 +551,8 @@ function Hero({ data, s, phone }: { data: StudentDashboard; s: DashState; phone?
     body = tr('You’ll get a notification as soon as the next one starts.', 'Makakatanggap ka ng notification kapag nagsimula na ang susunod.');
   } else if (s.allDone) {
     mood = 'party';
-    title = tr('All evaluations submitted!', 'Naipasa na lahat ng evaluation!');
-    body = tr(`Thank you! Your ${data.period.name} feedback helps your teachers improve.`, `Salamat! Nakakatulong ang ${data.period.name} feedback mo sa mga guro.`);
+    title = tr('All evaluations sent', 'Naipadala na lahat ng evaluation');
+    body = tr(`Your ${data.period.name} answers are in. Your teachers will see them combined with your classmates’.`, `Pasok na ang mga sagot mo sa ${data.period.name}. Makikita ito ng mga guro kasama ng sa mga kaklase mo.`);
     cta = { label: tr('See my history', 'Tingnan ang kasaysayan'), onPress: () => s.open(data.teachers.find((t) => t.status === 'completed')!) };
   } else if (!data.period.is_open) {
     mood = 'stern';
@@ -586,11 +560,11 @@ function Hero({ data, s, phone }: { data: StudentDashboard; s: DashState; phone?
     body = tr(`You’ll be able to evaluate ${pending} teacher${pending === 1 ? '' : 's'} once it opens on ${shortDate(data.period.opens_at)}.`, `Maie-evaluate mo ang ${pending} guro pagbukas nito sa ${shortDate(data.period.opens_at)}.`);
   } else if (s.urgent !== null) {
     mood = 'surprised';
-    title = s.urgent <= 1 ? tr('Closes within the hour!', 'Magsasara sa loob ng isang oras!') : tr(`Closes in ${s.urgent} hours!`, `Magsasara sa loob ng ${s.urgent} oras!`);
+    title = s.urgent <= 1 ? tr('Closes within the hour', 'Magsasara sa loob ng isang oras') : tr(`Closes in ${s.urgent} hours`, `Magsasara sa loob ng ${s.urgent} oras`);
     body = `${pending} teacher${pending === 1 ? '' : 's'} left. Each one takes about 3 minutes.`;
   } else {
     mood = data.progress.completed > 0 ? 'cheer' : 'lecture';
-    title = data.progress.completed > 0 ? tr(`Nice work! ${pending} to go`, `Galing! ${pending} pa`) : tr(`${pending} teacher${pending === 1 ? '' : 's'} to evaluate`, `${pending} guro ang ie-evaluate`);
+    title = data.progress.completed > 0 ? tr(`${pending} teacher${pending === 1 ? '' : 's'} left`, `${pending} guro pa`) : tr(`${pending} teacher${pending === 1 ? '' : 's'} to evaluate`, `${pending} guro ang ie-evaluate`);
     body = tr(`About ${pending * 3} minutes in total. It’s anonymous, so be honest.`, `Mga ${pending * 3} minuto lahat. Anonymous ito, kaya maging tapat.`);
   }
   if (next && !s.allDone) cta = { label: s.hasDraft(next) ? tr(`Continue with ${shortTeacher(next.teacher.name)}`, `Ituloy kay ${shortTeacher(next.teacher.name)}`) : tr(`Start with ${shortTeacher(next.teacher.name)}`, `Simulan kay ${shortTeacher(next.teacher.name)}`), onPress: () => s.open(next) };
@@ -615,7 +589,6 @@ function Hero({ data, s, phone }: { data: StudentDashboard; s: DashState; phone?
             style={({ hovered }: { hovered?: boolean }) => ({ marginTop: phone ? 14 : 18, alignSelf: 'flex-start', height: phone ? 42 : 48, paddingHorizontal: phone ? 16 : 22, borderRadius: 999, backgroundColor: hovered ? '#E9EAFB' : '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 8 })}
           >
             <Txt weight="semibold" size={phone ? 14 : 16} color={urgentTone ? '#8A2E07' : '#0B0B6E'} numberOfLines={1}>{cta.label}</Txt>
-            <Icon name="chevronRight" size={14} color={urgentTone ? '#8A2E07' : '#0B0B6E'} strokeWidth={2.4} />
           </Pressable>
         )}
         <View pointerEvents="none" style={{ position: 'absolute', right: phone ? 0 : 14, bottom: 0 }}>
@@ -651,22 +624,8 @@ function PeriodPill({ data }: { data: StudentDashboard }) {
   return (
     <View style={[{ height: 50, paddingHorizontal: 24, borderRadius: 999, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', gap: 10 }, shadowStyle('soft')]}>
       <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: open ? colors.successFg : colors.muted }} />
-      <Txt size={18} color={colors.textSoft}>{`${data.period?.name} · ${open ? tr('Open', 'Bukas') : tr('Upcoming', 'Paparating')}`}</Txt>
+      <Txt size={18} color={colors.textSoft}>{open ? tr(`${data.period?.name} is open`, `Bukas ang ${data.period?.name}`) : tr(`${data.period?.name} opens soon`, `Malapit nang magbukas ang ${data.period?.name}`)}</Txt>
     </View>
-  );
-}
-
-function NavyPill({ text, onPress }: { text: string; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={tr(`Showing ${text}. Switch teacher`, `Ipinapakita si ${text}. Palitan ang guro`)}
-      onPress={onPress}
-      style={({ hovered }: { hovered?: boolean }) => ({ height: 50, paddingHorizontal: 28, borderRadius: 999, backgroundColor: hovered ? colors.navyDeep : colors.navy, flexDirection: 'row', alignItems: 'center', gap: 10 })}
-    >
-      <Txt size={18} color="#FFFFFF">{text}</Txt>
-      <Icon name="chevronDown" size={16} color="#FFFFFF" strokeWidth={2.2} />
-    </Pressable>
   );
 }
 
@@ -720,7 +679,7 @@ function PhoneDashboard({ data, tour, refreshing, onRefresh }: { data: StudentDa
        <TourTarget id="teachers" style={{ gap: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Txt weight="semibold" size={22} accessibilityRole="header">{tr('Teachers to evaluate', 'Mga gurong ie-evaluate')}</Txt>
-          {data.period && <Txt weight="medium" size={14} color={data.period.is_open ? colors.successFg : colors.textSoft}>{`${data.period.name} · ${data.period.is_open ? tr('Open', 'Bukas') : tr('Upcoming', 'Paparating')}`}</Txt>}
+          {data.period && <Txt weight="medium" size={14} color={data.period.is_open ? colors.successFg : colors.textSoft}>{data.period.is_open ? tr(`${data.period.name} is open`, `Bukas ang ${data.period.name}`) : tr(`${data.period.name} opens soon`, `Malapit nang magbukas ang ${data.period.name}`)}</Txt>}
         </View>
         <FilterChips value={s.filter} onChange={s.setFilter} counts={s.counts} />
         {s.teachers.length === 0 && (
@@ -730,7 +689,7 @@ function PhoneDashboard({ data, tour, refreshing, onRefresh }: { data: StudentDa
               s.search
                 ? tr('No teacher matches your search.', 'Walang gurong tugma sa hinahanap mo.')
                 : s.filter === 'pending'
-                  ? tr('Nothing pending. You’re all caught up!', 'Wala nang natitira. Tapos ka na!')
+                  ? tr('Nothing left to evaluate.', 'Wala nang natitirang ie-evaluate.')
                   : s.filter === 'done'
                     ? tr('You haven’t evaluated anyone yet.', 'Wala ka pang na-evaluate.')
                     : tr('No classes are assigned to your section yet.', 'Wala pang klaseng naka-assign sa section mo.')
@@ -743,7 +702,8 @@ function PhoneDashboard({ data, tour, refreshing, onRefresh }: { data: StudentDa
           return (
             <FadeIn key={t.offering_id} delay={120 + i * 60}>
               <Pressable
-                accessibilityRole="button"
+                accessibilityRole="radio"
+                accessibilityState={{ checked: on }}
                 accessibilityLabel={`${t.teacher.name}, ${t.subject.name}, ${t.status === 'completed' ? tr('evaluated', 'tapos na') : tr('pending', 'hindi pa')}`}
                 onPress={() => s.setSelectedId(t.offering_id)}
                 style={[{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10, paddingHorizontal: 12, marginHorizontal: -12, borderRadius: 26 }, on ? { backgroundColor: colors.card, ...shadowStyle('lift') } : null]}
@@ -776,7 +736,6 @@ function PhoneDashboard({ data, tour, refreshing, onRefresh }: { data: StudentDa
         <FadeIn delay={300} style={{ gap: 16 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <Txt weight="semibold" size={22} style={{ flex: 1 }} accessibilityRole="header">{tr('Schedule', 'Iskedyul')}</Txt>
-            <NavyPill text={shortTeacher(s.selected.teacher.name)} onPress={s.cycleSelected} />
           </View>
           <TeacherCard t={s.selected} canEvaluate={s.canEvaluate(s.selected)} onPress={() => s.open(s.selected!)} compact />
           <View style={{ flexDirection: 'row', gap: 10 }}>

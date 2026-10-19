@@ -291,8 +291,8 @@ export function SignUpWizard({ school, onSignIn }: { school: PublicSchool; onSig
               <Txt weight="semibold" size={14} color={colors.accent}>{tr('Back', 'Bumalik')}</Txt>
             </Pressable>
           ) : null}
-          <Txt weight="semibold" size={13} color={colors.muted} style={{ flex: 1, textAlign: 'right', letterSpacing: 0.6 }}>
-            {tr(`STEP ${step + 1} OF 3 · ${STEP_LABELS[step].toUpperCase()}`, `HAKBANG ${step + 1} SA 3 · ${STEP_LABELS[step].toUpperCase()}`)}
+          <Txt weight="semibold" size={13} color={colors.muted} style={{ flex: 1, textAlign: 'right' }}>
+            {tr(`Step ${step + 1} of 3: ${STEP_LABELS[step]}`, `Hakbang ${step + 1} sa 3: ${STEP_LABELS[step]}`)}
           </Txt>
         </View>
       </View>
@@ -398,7 +398,7 @@ export function SignUpWizard({ school, onSignIn }: { school: PublicSchool; onSig
                     >
                       {({ hovered }: { hovered?: boolean }) => (
                         <>
-                          <Icon name="sparkle" size={13} color={hovered ? '#FFFFFF' : colors.accent} strokeWidth={2} />
+                          <Icon name="check" size={13} color={hovered ? '#FFFFFF' : colors.accent} strokeWidth={2} />
                           <Txt weight="semibold" size={14} color={hovered ? '#FFFFFF' : colors.accent}>{s}</Txt>
                         </>
                       )}
@@ -503,7 +503,7 @@ export function SignUpWizard({ school, onSignIn }: { school: PublicSchool; onSig
       ) : null}
 
       <Button
-        title={step < 2 ? tr('Continue  →', 'Magpatuloy  →') : tr('Create account  →', 'Gumawa ng account  →')}
+        title={step < 2 ? tr('Continue', 'Magpatuloy') : tr('Create account', 'Gumawa ng account')}
         size="lg"
         onPress={next}
         loading={busy || (step === 0 && idCheck.state === 'checking')}

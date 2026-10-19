@@ -186,15 +186,42 @@ class DemoSeeder extends Seeder
         ]);
 
         $questions = Question::for('student')->get();
+        // Written the way students actually write them: short, specific, sometimes in Taglish.
         $comments = [
             'The lab activities really helped me understand the topic.',
-            'Please upload the slides so we can review before quizzes.',
-            'Very approachable and explains well when asked.',
-            'Sometimes the instructions for projects are unclear.',
-            null, null,
+            'Please upload the slides before quizzes so we can review.',
+            'Very approachable, explains again when we ask.',
+            'Instructions for the final project were unclear at first.',
+            'Sana po mas maaga ma-post yung grades sa quizzes.',
+            'Good examples, especially the ones about our barangay network setup.',
+            'Class sometimes starts 15 minutes late.',
+            'I like that we can ask questions in the group chat.',
+            'Too fast during the subnetting lesson, hirap humabol.',
+            'The rubric for the case study made grading feel fair.',
+            'More hands-on activities please, less reading from slides.',
+            'Always prepared. You can tell sir/ma\'am knows the topic.',
+            'Medyo mahirap yung quiz compared sa lesson.',
+            'Thank you for the extra consultation before midterms.',
+            'Hard to hear from the back of the room.',
+            'The recap at the end of class helps a lot.',
         ];
+        $used = [];
+        // No teacher gets the same comment twice; about a third of answers have none, like real forms.
+        $comment = function (int $teacherId) use ($comments, &$used): ?string {
+            if (mt_rand(1, 3) === 1) {
+                return null;
+            }
+            $left = array_values(array_diff($comments, $used[$teacherId] ?? []));
+            if (! $left) {
+                return null;
+            }
+            $pick = $left[array_rand($left)];
+            $used[$teacherId][] = $pick;
 
-        $submit = function (User $student, ClassOffering $offering, ?EvaluationPeriod $period = null) use ($midterm, $questions, $comments) {
+            return $pick;
+        };
+
+        $submit = function (User $student, ClassOffering $offering, ?EvaluationPeriod $period = null) use ($midterm, $questions, $comment) {
             $period ??= $midterm;
             $early = $period->id !== $midterm->id;
             // Prelim ratings run a little lower, so the demo shows teachers improving.
@@ -202,7 +229,7 @@ class DemoSeeder extends Seeder
             $evaluation = Evaluation::create([
                 'evaluation_period_id' => $period->id, 'class_offering_id' => $offering->id,
                 'teacher_id' => $offering->teacher_id, 'evaluator_id' => $student->id, 'evaluator_role' => 'student',
-                'overall_rating' => round($ratings->avg(), 2), 'comment' => $comments[array_rand($comments)],
+                'overall_rating' => round($ratings->avg(), 2), 'comment' => $comment($offering->teacher_id),
                 'submitted_at' => $early ? $period->closes_at->copy()->subHours(mt_rand(2, 60)) : now()->subHours(mt_rand(1, 30)),
             ]);
             foreach ($questions as $i => $q) {

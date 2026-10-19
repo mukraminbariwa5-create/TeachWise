@@ -101,7 +101,7 @@ export default function SettingsScreen() {
 
       {user.role !== 'platform' && (
         <Section title="Professor Wise">
-          <ListRow icon="sparkle" title={tr('Page tips', 'Mga tip sa page')} subtitle={tr('Short tips the first time you open each page', 'Maiikling tip sa unang pagbukas ng bawat page')} toggle={{ value: settings.tips, onChange: (v) => save({ tips: v }) }} last />
+          <ListRow icon="glasses" title={tr('Page tips', 'Mga tip sa page')} subtitle={tr('Short tips the first time you open each page', 'Maiikling tip sa unang pagbukas ng bawat page')} toggle={{ value: settings.tips, onChange: (v) => save({ tips: v }) }} last />
         </Section>
       )}
 
@@ -190,7 +190,7 @@ function AboutSheet({ visible, onClose }: { visible: boolean; onClose: () => voi
         <ListRow icon="shield" title={tr('Privacy Policy', 'Privacy Policy')} onPress={() => { onClose(); router.push('/legal/privacy'); }} />
         {info.data?.support_email ? <ListRow icon="mail" title={tr('Support email', 'Email ng suporta')} value={info.data.support_email} last /> : null}
       </Section>
-      <Txt weight="semibold" size={text.small} color={colors.muted} style={{ letterSpacing: 0.8 }}>{tr('OPEN-SOURCE SOFTWARE', 'OPEN-SOURCE NA SOFTWARE')}</Txt>
+      <Txt weight="semibold" size={text.small} color={colors.muted} >{tr('Open-source software', 'Open-source na software')}</Txt>
       <Txt size={text.small} color={colors.muted} style={{ lineHeight: 20 }}>{libs.join(' · ')}</Txt>
     </Sheet>
   );

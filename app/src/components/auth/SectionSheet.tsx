@@ -151,7 +151,7 @@ export function SectionSheet({
             {suggested.length > 0 && (
               <View style={{ gap: 10, backgroundColor: colors.brandSoft, borderRadius: 20, padding: 14 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Icon name="sparkle" size={16} color={colors.accent} strokeWidth={2} />
+                  <Icon name="check" size={16} color={colors.accent} strokeWidth={2} />
                   <Txt weight="semibold" size={14} color={colors.accent}>{tr(`Suggested for you · ${ordinal(year!)}`, `Mungkahi para sa iyo · ${ordinal(year!)}`)}</Txt>
                 </View>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{suggested.map((s) => chip(s, true))}</View>
@@ -160,7 +160,7 @@ export function SectionSheet({
 
             {groups.map((g) => (
               <View key={g.course} style={{ gap: 10 }}>
-                <Txt weight="bold" size={13} color={colors.muted} style={{ letterSpacing: 1.2 }}>{g.course}</Txt>
+                <Txt weight="bold" size={13} color={colors.muted} >{g.course}</Txt>
                 {g.years.map(([y, list]) => (
                   <View key={y} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     <Txt weight="medium" size={14} color={colors.textSoft} style={{ width: 74 }}>{ordinal(y)}</Txt>
