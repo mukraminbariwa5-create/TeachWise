@@ -30,7 +30,7 @@ export function DemoLogins() {
     setBusy(username);
     setError(null);
     try {
-      const u = await login(username, 'password', false, null);
+      const u = await login(username, 'password', true, null);
       router.replace(homeFor(u.role));
     } catch (e) {
       setError(e instanceof ApiError ? e.firstMessage : tr('Could not sign in. Please try again.', 'Hindi makapag-sign in. Pakisubukan ulit.'));

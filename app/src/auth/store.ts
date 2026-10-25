@@ -68,10 +68,13 @@ async function loadMe(token: string): Promise<User> {
   setPref('user', JSON.stringify(me.user));
   setPref('userSchool', me.school ? JSON.stringify(me.school) : '');
   registerPushToken().catch(() => {});
-  if (me.token_expires_at && new Date(me.token_expires_at).getTime() - Date.now() < RENEW_WITHIN_MS) {
+  // Only "Stay signed in" sessions are renewed. A short session (stay signed in off) is meant to
+  // end; renewing it here on every load also revoked the token other requests were still using.
+  const remember = (await getPref('remember')) !== '0';
+  if (remember && me.token_expires_at && new Date(me.token_expires_at).getTime() - Date.now() < RENEW_WITHIN_MS) {
     try {
       const r = await api<{ token: string }>('/auth/refresh', { method: 'POST', token });
-      await setToken(r.token, (await getPref('remember')) !== '0');
+      await setToken(r.token, remember);
     } catch {
       // keep the current token; it still works until it expires
     }
