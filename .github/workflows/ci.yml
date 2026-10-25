@@ -45,3 +45,40 @@ jobs:
         run: npx tsc --noEmit
       - name: Web build
         run: npx expo export -p web
+
+  demo-image:
+    name: Demo container (Render)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -t teachwise-demo .
+      - name: Start it
+        run: |
+          docker run -d --name tw -p 8080:10000 teachwise-demo
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:8080/up >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker logs tw | tail -20
+      - name: Smoke test
+        run: |
+          set -e
+          B=http://localhost:8080
+          curl -fsS $B/up >/dev/null && echo "health check ok"
+          curl -fsS $B/ | grep -q '<div id="root"' && echo "web app served at /"
+          curl -fsS $B/login | grep -q '<div id="root"' && echo "deep links open the web app"
+          curl -fsS $B/api/schools/DEMO | grep -q 'Demo State University' && echo "API answers"
+          TOKEN=$(curl -fsS -X POST $B/api/auth/login -H 'Content-Type: application/json' -H 'Accept: application/json' \
+            -d '{"login":"admin","password":"password"}' | jq -r .token)
+          test -n "$TOKEN" && test "$TOKEN" != null && echo "demo admin signs in"
+          curl -fsS $B/api/admin/dashboard -H "Authorization: Bearer $TOKEN" -H 'Accept: application/json' >/dev/null && echo "token works through Apache"
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' -X PUT $B/api/auth/password -H "Authorization: Bearer $TOKEN" \
+            -H 'Content-Type: application/json' -H 'Accept: application/json' \
+            -d '{"current_password":"password","password":"Hijacked-99","password_confirmation":"Hijacked-99"}')
+          test "$CODE" = 403 && echo "demo password is protected"
+          JS=$(curl -fsS $B/ | grep -o '/_expo/static/js/web/[^"]*\.js' | head -1)
+          curl -fsS "$B$JS" | grep -q 'or try a demo account' && echo "web build has the demo buttons"
+      - name: Container log
+        if: always()
+        run: docker logs tw 2>&1 | tail -60

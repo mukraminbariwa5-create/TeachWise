@@ -1,0 +1,10 @@
+.git
+.github
+**/node_modules
+app/dist
+app/.expo
+backend/vendor
+backend/.env
+**/*.sqlite
+docs
+*.bat
