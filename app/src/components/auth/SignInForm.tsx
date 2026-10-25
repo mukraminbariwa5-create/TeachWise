@@ -12,6 +12,7 @@ import { Field, PasswordField, Toggle } from '../form/Field';
 import { Icon } from '../Icon';
 import { Txt } from '../Txt';
 import { cue, CUES, useCue } from './cue';
+import { DemoLogins, IS_PUBLIC_DEMO } from './DemoLogins';
 import { ForgotPassword } from './ForgotPassword';
 
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -159,6 +160,8 @@ export function SignInForm({ schoolId, onNeedSchool }: { schoolId?: number | nul
         disabled={locked}
       />
       {locked && <Button title={tr('Ask the admin for a new password', 'Humingi ng bagong password sa admin')} variant="outline" onPress={() => setForgot(true)} />}
+
+      {IS_PUBLIC_DEMO && <DemoLogins />}
 
       <ForgotPassword visible={forgot} initialLogin={form.login} onClose={() => setForgot(false)} />
     </View>
