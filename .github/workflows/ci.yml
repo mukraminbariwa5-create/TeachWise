@@ -52,7 +52,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build the image
-        run: docker build -t teachwise-demo .
+        run: |
+          set -o pipefail
+          if ! docker build --progress=plain -t teachwise-demo . 2>&1 | tee build.log; then
+            # Show the end of the build output on the check itself
+            echo "::error title=Docker build failed::$(tail -n 60 build.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+            exit 1
+          fi
       - name: Start it
         run: |
           docker run -d --name tw -p 8080:10000 teachwise-demo
@@ -80,5 +86,7 @@ jobs:
           JS=$(curl -fsS $B/ | grep -o '/_expo/static/js/web/[^"]*\.js' | head -1)
           curl -fsS "$B$JS" | grep -q 'or try a demo account' && echo "web build has the demo buttons"
       - name: Container log
-        if: always()
-        run: docker logs tw 2>&1 | tail -60
+        if: failure()
+        run: |
+          docker logs tw > container.log 2>&1 || true
+          echo "::error title=Container log::$(tail -n 40 container.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
