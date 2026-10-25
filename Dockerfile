@@ -17,9 +17,11 @@ RUN npx expo export -p web --output-dir dist
 FROM composer:2 AS vendor
 WORKDIR /app
 COPY backend/composer.json ./
-RUN composer install --no-dev --no-interaction --prefer-dist --no-progress --no-scripts --no-autoloader --ignore-platform-reqs
+# Pick package versions for the PHP the server runs (8.3), not the newer PHP in this build image.
+RUN composer config platform.php 8.3.30 \
+    && composer install --no-dev --no-interaction --prefer-dist --no-progress --no-scripts --no-autoloader --ignore-platform-req=ext-*
 COPY backend/ ./
-RUN composer dump-autoload --optimize --no-dev --no-scripts
+RUN composer config platform.php 8.3.30 && composer dump-autoload --optimize --no-dev --no-scripts
 
 # ---- 3. Runtime: PHP 8.3 + Apache --------------------------------------------
 FROM php:8.3-apache
