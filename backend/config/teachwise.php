@@ -21,4 +21,8 @@ return [
     // How long sign-ins last. "Stay signed in" off = short session.
     'session_days' => (int) env('TEACHWISE_SESSION_DAYS', 30),
     'short_session_hours' => (int) env('TEACHWISE_SHORT_SESSION_HOURS', 12),
+
+    // Public portfolio demo: shared demo accounts can't be locked or broken by visitors
+    // (see App\Http\Middleware\PublicDemo). Only for a public demo server.
+    'public_demo' => (bool) env('TEACHWISE_PUBLIC_DEMO', false),
 ];

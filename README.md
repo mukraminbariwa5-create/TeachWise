@@ -1,5 +1,7 @@
 # TeachWise
 
+**[Live demo](https://teachwise-demo.onrender.com)** · one-click Student, Teacher, School admin and Owner demo accounts on the sign-in screen (free hosting: the first visit can take about a minute to wake up).
+
 Anonymous instructional evaluation for schools, on **Android** and the **web**, guided by **Professor Wise**, a friendly cartoon professor who walks everyone through it.
 
 Students rate their teachers in about three minutes per class. Teachers get clear, anonymous results with trends, focus areas and comments. Admins run the whole process from one dashboard. One app and one server serve **many schools**, and each school's data is kept strictly separate.

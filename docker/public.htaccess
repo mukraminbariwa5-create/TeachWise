@@ -1,0 +1,20 @@
+# TeachWise demo container: the API goes to Laravel, files are served as they are,
+# and every other address opens the web app (it has its own router).
+<IfModule mod_rewrite.c>
+    Options -MultiViews -Indexes
+    RewriteEngine On
+
+    # Pass the sign-in token through to Laravel
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # API and health check -> Laravel
+    RewriteRule ^(api|up)(/.*)?$ index.php [L]
+
+    # Real files (scripts, images, fonts) as they are
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # Everything else -> the web app
+    RewriteRule ^ index.html [L]
+</IfModule>

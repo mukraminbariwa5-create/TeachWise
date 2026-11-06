@@ -1,0 +1,13 @@
+# Render Blueprint for the TeachWise public demo (free plan).
+# On render.com: New > Blueprint > pick this repository. See docker/README.md.
+services:
+  - type: web
+    name: teachwise-demo
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /up
+    autoDeploy: true
+    envVars:
+      - key: TEACHWISE_PUBLIC_DEMO
+        value: "true"

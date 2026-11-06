@@ -6,6 +6,8 @@ From `backend/`, run `composer install` and `php artisan test`. The feature suit
 
 From `app/`, run `npm ci`, `npm run typecheck`, and `npm run build:web`. Both Node and Composer lockfiles are versioned for reproducible installs. GitHub Actions runs the API suite, frontend checks and public-demo container checks.
 
+After integrating the public-demo and short-session fixes on 6 November 2026, the complete API suite passed **120 tests with 920 assertions**. Earlier review documents retain the test counts from their respective verification dates.
+
 ## Browser checks
 
 Start the local web app on port 8081. Install Playwright separately, for example `npm install --prefix .ui-checks/browser-tools playwright` from the repository root, and install a browser with that package's CLI. Tests use Edge by default; set `UI_BROWSER` to an installed Playwright browser channel as needed. `PLAYWRIGHT_MODULE` can point to the installed package's absolute path.
