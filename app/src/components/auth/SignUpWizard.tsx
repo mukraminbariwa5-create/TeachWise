@@ -22,7 +22,7 @@ import { SectionSheet, sectionLabel, suggestedYear, type Section } from './Secti
 interface IdCheck {
   state: FieldState;
   message?: string;
-  reason?: 'taken' | 'not_listed';
+  reason?: 'taken' | 'not_listed' | 'incomplete_record';
   name?: string | null;
   section?: { id: number; label: string } | null;
 }

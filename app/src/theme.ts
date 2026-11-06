@@ -16,15 +16,16 @@ const light = {
   navyDeep: '#05053F',
   navySoft: '#2A2A8A',
   onNavyMuted: '#C9CCF0',
-  page: '#E4E8F2',
-  surface: '#F3F5FB',
+  page: '#F7F7FD',
+  surface: '#F7F7FD',
   card: '#FFFFFF',
   text: '#12122B',
   textSoft: '#3B3F5C',
   muted: '#5B5F7A',
   placeholder: '#6B6F8A',
-  border: '#C9CEDF',
-  borderSoft: '#DCE1EE',
+  border: '#D3D5E7',
+  borderSoft: '#E3E4F0',
+  focusBorder: '#A5A7DA',
   track: '#E6E9F3',
   chip: '#E6E8F7',
   inverse: '#12122B',
@@ -45,6 +46,7 @@ const light = {
   shadow: '#0B0B6E',
   /** The "Wise" periwinkle from the logo. */
   brand: '#7476FD',
+  brandText: '#4C4DCA',
   brandSoft: '#ECEBFF',
   /** Navy used for text and icons (links, bold words). Lighter in dark mode so it stays readable. */
   accent: '#0B0B6E',
@@ -82,6 +84,7 @@ const dark: Palette = {
   placeholder: '#8C90B6',
   border: '#34366A',
   borderSoft: '#2A2C55',
+  focusBorder: '#6A6DA8',
   track: '#2A2C52',
   chip: '#262970',
   inverse: '#F1F2FB',
@@ -101,6 +104,7 @@ const dark: Palette = {
   skeleton: '#23254A',
   shadow: '#000000',
   brand: '#8E90FF',
+  brandText: '#B2B4FF',
   brandSoft: '#23245A',
   accent: '#A5A8FF',
   urgentCard: '#A8380A',
@@ -131,7 +135,7 @@ export const fonts = {
   bold: 'Outfit_700Bold',
 };
 
-export const radius = { sm: 14, md: 22, lg: 28, xl: 32, pill: 999 };
+export const radius = { sm: 10, md: 16, lg: 20, xl: 24, pill: 999 };
 
 /** Spacing scale. Use these instead of one-off numbers so every screen lines up. */
 export const space = { xxs: 4, xs: 8, sm: 12, md: 16, lg: 20, xl: 24, xxl: 32, xxxl: 48 } as const;
@@ -143,9 +147,9 @@ export const text = { caption: 12, small: 13, body: 15, bodyLg: 16, title: 18, h
 export function shadowStyle(strength: 'soft' | 'lift' = 'soft') {
   return {
     shadowColor: colors.shadow,
-    shadowOpacity: strength === 'lift' ? 0.1 : 0.06,
-    shadowRadius: strength === 'lift' ? 26 : 20,
-    shadowOffset: { width: 0, height: strength === 'lift' ? 10 : 8 },
+    shadowOpacity: strength === 'lift' ? 0.08 : 0.035,
+    shadowRadius: strength === 'lift' ? 20 : 12,
+    shadowOffset: { width: 0, height: strength === 'lift' ? 6 : 3 },
     elevation: strength === 'lift' ? 4 : 2,
   } as const;
 }

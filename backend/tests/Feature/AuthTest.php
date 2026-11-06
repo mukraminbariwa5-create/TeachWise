@@ -68,6 +68,8 @@ class AuthTest extends ApiTestCase
         $this->postJson('/api/auth/register', $payload)->assertStatus(422)->assertJsonValidationErrors('id_number');
 
         WhitelistedId::create(['id_number' => '2026-9999']);
+        $this->postJson('/api/auth/register', $payload)->assertUnprocessable()->assertJsonValidationErrors('id_number');
+        WhitelistedId::where('id_number', '2026-9999')->update(['name' => 'New Student', 'section_id' => $section->id]);
         $this->postJson('/api/auth/register', $payload)->assertCreated()->assertJsonPath('user.role', 'student');
     }
 

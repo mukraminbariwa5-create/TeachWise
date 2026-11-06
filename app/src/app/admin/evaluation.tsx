@@ -14,9 +14,10 @@ type Tab = 'periods' | 'questions';
 /** When evaluations run, and what they ask (in English and Filipino). */
 export default function EvaluationSetupScreen() {
   const [tab, setTab] = useState<Tab>('periods');
+  const dept = useAuth((s) => s.user?.admin_scope === 'department');
   const scrollHide = useScrollHide();
   return (
-    <Screen title={tr('Evaluation setup', 'Setup ng evaluation')} subtitle={tr('Evaluation periods and the questions on each form', 'Mga evaluation period at ang mga tanong sa bawat form')} maxWidth={1100} {...scrollHide}>
+    <Screen title={dept ? tr('Shared evaluation framework', 'Patakaran ng evaluation') : tr('Evaluation setup', 'Setup ng evaluation')} subtitle={dept ? tr('Read-only questions and dates managed by your school admin', 'Mga tanong at petsang pinamamahalaan ng school admin; tingnan lamang') : tr('Evaluation periods and the questions on each form', 'Mga evaluation period at ang mga tanong sa bawat form')} maxWidth={1100} {...scrollHide}>
       <Segmented<Tab>
         label={tr('Show', 'Ipakita')}
         value={tab}
@@ -26,7 +27,7 @@ export default function EvaluationSetupScreen() {
           { key: 'questions', label: tr('Questions', 'Mga tanong'), icon: 'list' },
         ]}
       />
-      {tab === 'periods' ? <Periods /> : <Questions />}
+      {tab === 'periods' ? <Periods readOnly={dept} /> : <Questions readOnly={dept} />}
     </Screen>
   );
 }
@@ -40,15 +41,16 @@ function periodStatus(p: AdminPeriod) {
   return <Pill label={tr('Closed', 'Sarado')} tone="grey" />;
 }
 
-function Periods() {
+function Periods({ readOnly }: { readOnly: boolean }) {
   const semesters = useAdminList<Semester>('semesters');
   const peerOn = useAuth((s) => s.school?.settings.peer_evaluation ?? true);
   return (
     <CrudSection<AdminPeriod>
       resource="periods"
+      readOnly={readOnly}
       noun={tr('period', 'period')}
       note={tr('People are notified automatically when a period opens, and reminded a day before it closes.', 'Kusang naaabisuhan ang mga tao kapag nagbukas ang period, at pinapaalalahanan isang araw bago magsara.')}
-      empty={{ title: tr('No evaluation periods yet', 'Wala pang evaluation period'), message: tr('Add a period like “Midterm” with the dates students can evaluate.', 'Magdagdag ng period gaya ng “Midterm” kasama ang mga petsang puwedeng mag-evaluate.'), mood: 'idea' }}
+      empty={{ title: tr('No evaluation periods yet', 'Wala pang evaluation period'), message: readOnly ? tr('Your school admin will set the shared evaluation dates.', 'Ang school admin ang magtatakda ng petsa ng evaluation.') : tr('Add a period like “Midterm” with the dates students can evaluate.', 'Magdagdag ng period gaya ng “Midterm” kasama ang mga petsang puwedeng mag-evaluate.'), mood: 'idea' }}
       columns={[
         { label: tr('Period', 'Period'), flex: 1.5, render: (p) => p.name },
         { label: tr('Type', 'Uri'), flex: 1.6, render: (p) => typeLabel(p.type), phone: true },
@@ -69,11 +71,12 @@ function Periods() {
   );
 }
 
-function Questions() {
+function Questions({ readOnly }: { readOnly: boolean }) {
   const [audience, setAudience] = useState<'student' | 'peer'>('student');
   return (
     <CrudSection<AdminQuestion>
       resource="questions"
+      readOnly={readOnly}
       params={{ audience }}
       noun={tr('question', 'tanong')}
       note={tr('Questions can’t change while an evaluation using them is open, so everyone answers the same form. Filipino text is optional. People who chose Filipino see it when it’s filled in. Questions that already have answers are switched off instead of deleted.', 'Hindi mababago ang mga tanong habang bukas ang evaluation na gumagamit nito, para pare-pareho ang form. Opsyonal ang Filipino. Makikita ito ng mga pumili ng Filipino kapag may laman. Ang mga tanong na may sagot na ay io-off sa halip na burahin.')}

@@ -2,8 +2,9 @@ import { useEffect, useRef } from 'react';
 import { tr } from '@/lib/i18n';
 import { FlatList, Modal, Pressable, View } from 'react-native';
 import { useMarkAllRead, useNotifications } from '@/api/hooks';
-import { shortDate } from '@/lib/format';
+import { ago, shortDate } from '@/lib/format';
 import { getPref, setPref } from '@/lib/prefs';
+import { useReducedMotion } from '@/lib/useReducedMotion';
 import { toast, useUI } from '@/lib/ui';
 import { colors, shadowStyle } from '@/theme';
 import { Icon } from './Icon';
@@ -32,6 +33,7 @@ export function NotificationBell({ color, dotBorder, size = 26 }: { color?: stri
 
 /** The notifications list. Rendered once by the Shell; anything can open it through useUI. */
 export function NotificationsSheet() {
+  const reduced = useReducedMotion();
   const open = useUI((s) => s.notificationsOpen);
   const close = () => useUI.getState().setNotificationsOpen(false);
   const { data } = useNotifications();
@@ -40,18 +42,14 @@ export function NotificationsSheet() {
   const items = data?.data ?? [];
 
   return (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={close}>
+    <Modal visible={open} transparent animationType={reduced ? 'none' : 'fade'} onRequestClose={close}>
       <Pressable accessibilityLabel={tr('Close notifications', 'Isara ang notifications')} onPress={close} style={{ flex: 1, backgroundColor: 'rgba(5,5,40,0.45)', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-        <Pressable onPress={() => {}} style={[{ width: '100%', maxWidth: 440, maxHeight: '80%', backgroundColor: colors.card, borderRadius: 28, padding: 22, gap: 14 }, shadowStyle('lift')]}>
+        <Pressable onPress={() => {}} style={[{ width: '100%', maxWidth: 440, maxHeight: '80%', backgroundColor: colors.card, borderRadius: 20, padding: 18, gap: 14, borderWidth: 1, borderColor: colors.borderSoft }, shadowStyle('lift')]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <Txt weight="semibold" size={22} accessibilityRole="header">{tr('Notifications', 'Mga notification')}</Txt>
+            <Txt weight="semibold" size={22} accessibilityRole="header" style={{ flex: 1 }}>{tr('Notifications', 'Mga notification')}</Txt>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              {unread > 0 && (
-                <Pressable accessibilityRole="button" onPress={() => markAll.mutate()} style={{ minHeight: 44, paddingHorizontal: 8, justifyContent: 'center' }}>
-                  <Txt weight="semibold" size={14} color={colors.accent}>{tr('Mark all as read', 'Markahang nabasa lahat')}</Txt>
-                </Pressable>
-              )}
-              <Pressable accessibilityRole="button" accessibilityLabel={tr('Close', 'Isara')} onPress={close} style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface }}>
+
+              <Pressable accessibilityRole="button" accessibilityLabel={tr('Close', 'Isara')} onPress={close} style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface }}>
                 <Icon name="close" size={16} color={colors.textSoft} strokeWidth={2.2} />
               </Pressable>
             </View>
@@ -61,6 +59,8 @@ export function NotificationsSheet() {
             keyExtractor={(n) => String(n.id)}
             contentContainerStyle={{ gap: 10 }}
             initialNumToRender={10}
+            ListHeaderComponent={unread > 0 ? <Pressable accessibilityRole="button" disabled={markAll.isPending} onPress={() => markAll.mutate()} style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start', marginBottom: 6 }}><Txt weight="semibold" size={14} color={colors.accent}>{markAll.isPending ? tr('Updating…', 'Ina-update…') : tr('Mark all as read', 'Markahang nabasa lahat')}</Txt></Pressable> : null}
+            ListFooterComponent={markAll.error ? <Txt accessibilityLiveRegion="polite" size={14} color={colors.danger}>{tr('Could not mark notifications as read. Try again.', 'Hindi mamarkahang nabasa. Subukan ulit.')}</Txt> : null}
             ListEmptyComponent={
               <View style={{ alignItems: 'center', gap: 8, paddingVertical: 16 }}>
                 <WiseMascot size={120} mood="proud" />
@@ -71,11 +71,11 @@ export function NotificationsSheet() {
             renderItem={({ item: n }) => (
               <View style={{ backgroundColor: n.read_at ? colors.surface : colors.chip, borderRadius: 18, padding: 14, gap: 4 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  {!n.read_at && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.alert }} />}
+                  {!n.read_at && <Txt weight="semibold" size={11} color={colors.accent}>{tr('Unread', 'Hindi pa nabasa')}</Txt>}
                   <Txt weight="semibold" size={15} style={{ flex: 1 }}>{n.title}</Txt>
                 </View>
                 <Txt size={14} color={colors.textSoft} style={{ lineHeight: 20 }}>{n.message}</Txt>
-                <Txt size={13} color={colors.muted}>{shortDate(n.created_at)}</Txt>
+                <Txt size={13} color={colors.muted}>{ago(n.created_at)}</Txt>
               </View>
             )}
           />

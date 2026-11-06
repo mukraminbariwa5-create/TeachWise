@@ -35,6 +35,19 @@ class AdminScope
             ->orWhere(fn ($s) => $s->where('role', User::ROLE_STUDENT)->whereHas('studentProfile.section.program', fn ($p) => $p->where('department_id', $dept))));
     }
 
+    /** Account administration is separate from the read-only reporting scope. */
+    public static function managedUsers(Builder $query): Builder
+    {
+        return self::limited()
+            ? self::users($query)->whereIn('role', [User::ROLE_TEACHER, User::ROLE_STUDENT])
+            : $query->where('role', User::ROLE_ADMIN);
+    }
+
+    public static function supportMessages(Builder $query): Builder
+    {
+        return $query->whereHas('user', fn ($q) => self::managedUsers($q));
+    }
+
     public static function sections(Builder $query): Builder
     {
         $dept = self::departmentId();
@@ -56,14 +69,12 @@ class AdminScope
         return $dept === null ? $query : $query->where('department_id', $dept);
     }
 
-    /** Classes taught to the department's sections or by its teachers. */
+    /** Class assignments belong to the department responsible for the section. */
     public static function offerings(Builder $query): Builder
     {
         $dept = self::departmentId();
 
-        return $dept === null ? $query : $query->where(fn ($w) => $w
-            ->whereHas('section.program', fn ($p) => $p->where('department_id', $dept))
-            ->orWhereHas('teacher', fn ($t) => $t->where('department_id', $dept)));
+        return $dept === null ? $query : $query->whereHas('section.program', fn ($p) => $p->where('department_id', $dept));
     }
 
     /** Stops department admins from something only the school admin may do. */

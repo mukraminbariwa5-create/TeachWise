@@ -1,4 +1,5 @@
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, useWindowDimensions, View } from 'react-native';
+import { DashboardBanner } from '@/components/DashboardBanner';
 import { useRouter, type Href } from 'expo-router';
 import { useTeacherDashboard } from '@/api/hooks';
 import type { PeerItem, TeacherDashboard } from '@/api/types';
@@ -15,7 +16,7 @@ import { StatusChip } from '@/components/StatusChip';
 import { Txt } from '@/components/Txt';
 import { CommentCard, EmptyState, Panel, StatCard, StatRow } from '@/components/ui';
 import { WiseMascot, type Mood } from '@/components/WiseMascot';
-import { firstName, greetingWord, shortDate } from '@/lib/format';
+import { firstName, greetingWord, isClosingSoon, shortDate } from '@/lib/format';
 import { tr } from '@/lib/i18n';
 import { useScrollHide } from '@/lib/ui';
 import { useLayoutSize } from '@/lib/useLayout';
@@ -26,7 +27,7 @@ import { colors, space, text } from '@/theme';
 export default function TeacherHome() {
   const size = useLayoutSize();
   const phone = size === 'phone';
-  const desktop = size === 'desktop';
+  const desktop = useWindowDimensions().width >= 1320;
   const query = useTeacherDashboard();
   const scrollHide = useScrollHide();
   useTitle(tr('Home', 'Home'));
@@ -58,7 +59,7 @@ export default function TeacherHome() {
     <ScrollView
       {...scrollHide}
       refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} tintColor={colors.accent} />}
-      contentContainerStyle={{ paddingHorizontal: phone ? space.lg : 52, paddingTop: phone ? 22 : 40, paddingBottom: phone ? 32 : 120, gap: space.lg, width: '100%', maxWidth: 1240, alignSelf: 'center' }}
+      contentContainerStyle={{ paddingHorizontal: phone ? space.lg : 32, paddingTop: phone ? 18 : 32, paddingBottom: phone ? 36 : 72, gap: phone ? space.lg : 24, width: '100%', maxWidth: 1440, alignSelf: 'center' }}
     >
       {phone ? <AppBar title={tr('Home', 'Home')} subtitle={d.semester?.name} /> : <PageHeader title={tr('Dashboard', 'Dashboard')} />}
       <Hero d={d} phone={phone} />
@@ -141,31 +142,7 @@ function Hero({ d, phone }: { d: TeacherDashboard; phone: boolean }) {
     cta = { label: tr('Open my full report', 'Buksan ang buong report'), onPress: () => router.push('/teacher/report') };
   }
 
-  const sticker = phone ? 112 : 190;
-  return (
-    <FadeIn>
-      <View style={{ backgroundColor: colors.frame, borderRadius: phone ? 30 : 36, paddingVertical: phone ? 22 : 30, paddingLeft: phone ? 22 : 34, paddingRight: phone ? sticker - 4 : sticker + 8, minHeight: phone ? 150 : 176 }}>
-        <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: phone ? 30 : 36, overflow: 'hidden' }}>
-          <View style={{ position: 'absolute', right: -50, top: -70, width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(255,255,255,0.07)' }} />
-        </View>
-        <Txt weight="medium" size={phone ? 13 : 15} color={colors.onFrameMuted}>{`${greetingWord().replace(',', '')}, ${firstName(d.teacher.name)}`}</Txt>
-        <Txt weight="bold" size={phone ? 22 : 30} color="#FFFFFF" style={{ marginTop: 4, letterSpacing: -0.5, lineHeight: phone ? 28 : 36 }} accessibilityRole="header">{title}</Txt>
-        <Txt size={phone ? 14 : 16} color={colors.onFrameMuted} style={{ marginTop: 6, lineHeight: phone ? 20 : 23 }}>{body}</Txt>
-        {cta && (
-          <Pressable
-            accessibilityRole="button"
-            onPress={cta.onPress}
-            style={({ hovered }: { hovered?: boolean }) => ({ marginTop: phone ? 14 : 18, alignSelf: 'flex-start', height: phone ? 42 : 48, paddingHorizontal: phone ? 16 : 22, borderRadius: 999, backgroundColor: hovered ? '#E9EAFB' : '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 8 })}
-          >
-            <Txt weight="semibold" size={phone ? 14 : 16} color="#0B0B6E" numberOfLines={1}>{cta.label}</Txt>
-          </Pressable>
-        )}
-        <View pointerEvents="none" style={{ position: 'absolute', right: phone ? -4 : 14, bottom: 0 }}>
-          <WiseMascot size={sticker} mood={mood} shadow={false} />
-        </View>
-      </View>
-    </FadeIn>
-  );
+  return <DashboardBanner eyebrow={`${greetingWord()} ${firstName(d.teacher.name)}`} title={title} description={body} mood={mood} action={cta}></DashboardBanner>;
 }
 
 /** Too few answers yet: nothing is shown, so nobody can work out who said what. */
@@ -263,13 +240,13 @@ function PeerPanel({ d }: { d: TeacherDashboard }) {
   const subtitle = !p
     ? tr('No peer evaluation scheduled', 'Walang nakatakdang peer evaluation')
     : p.is_open
-      ? tr(`${p.name} · closes ${shortDate(p.closes_at)}`, `${p.name} · magsasara ${shortDate(p.closes_at)}`)
-      : tr(`${p.name} · opens ${shortDate(p.opens_at)}`, `${p.name} · magbubukas ${shortDate(p.opens_at)}`);
+      ? (isClosingSoon(p) ? tr(`${p.name} · closing soon · closes ${shortDate(p.closes_at)}`, `${p.name} · malapit nang magsara · ${shortDate(p.closes_at)}`) : tr(`${p.name} · closes ${shortDate(p.closes_at)}`, `${p.name} · magsasara ${shortDate(p.closes_at)}`))
+      : new Date(p.opens_at).getTime() > Date.now() ? tr(`${p.name} · opens ${shortDate(p.opens_at)}`, `${p.name} · magbubukas ${shortDate(p.opens_at)}`) : tr(`${p.name} · closed ${shortDate(p.closes_at)}`, `${p.name} · nagsara ${shortDate(p.closes_at)}`);
 
   return (
     <Panel title={tr('Peer evaluation', 'Peer evaluation')} subtitle={subtitle}>
       {d.peers.length === 0 ? (
-        <Txt size={text.body} color={colors.muted} style={{ lineHeight: 22 }}>{tr('No colleagues share your subjects this semester.', 'Walang kasamahan na may parehong subject ngayong semestre.')}</Txt>
+        <Txt size={text.body} color={colors.muted} style={{ lineHeight: 22 }}>{d.teacher.department_id ? tr('No active colleagues in your department yet.', 'Wala pang aktibong kasamahan sa departamento mo.') : tr('Ask your school admin to assign your department before evaluating colleagues.', 'Hilingin sa admin ng paaralan na italaga ang departamento mo bago mag-evaluate ng kasamahan.')}</Txt>
       ) : (
         d.peers.map((peer) => <PeerRow key={peer.teacher.id} peer={peer} open={!!p?.is_open} onPress={() => router.push(`/teacher/peers/${peer.teacher.id}` as Href)} />)
       )}
@@ -284,7 +261,7 @@ function PeerRow({ peer, open, onPress }: { peer: PeerItem; open: boolean; onPre
       <Avatar name={peer.teacher.name} initials={peer.teacher.initials} size={44} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Txt weight="semibold" size={text.bodyLg} numberOfLines={1}>{peer.teacher.name}</Txt>
-        <Txt size={text.small} color={colors.muted} numberOfLines={1}>{peer.shared_subjects.join(', ')}</Txt>
+        <Txt size={text.small} color={colors.muted} numberOfLines={1}>{peer.teacher.department || tr('School colleague', 'Kasamahan sa paaralan')}</Txt>
       </View>
       {canEvaluate ? <Button title={tr('Evaluate', 'I-evaluate')} onPress={onPress} /> : <StatusChip status={peer.status} compact />}
     </View>

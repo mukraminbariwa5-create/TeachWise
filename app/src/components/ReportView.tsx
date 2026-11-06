@@ -1,7 +1,8 @@
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import type { FacultyReport } from '@/api/types';
 import { shortDate } from '@/lib/format';
 import { tr } from '@/lib/i18n';
+import { useLayoutSize } from '@/lib/useLayout';
 import { colors, space, text } from '@/theme';
 import { CriteriaBars, formatRating, TrendChart } from './Charts';
 import { LogoMark } from './Logo';
@@ -13,12 +14,13 @@ import { CommentCard, Panel } from './ui';
  * and the clean print page (Print / Save as PDF).
  */
 export function ReportView({ report, printable, schoolName }: { report: FacultyReport; printable?: boolean; schoolName?: string }) {
+  const phone = useLayoutSize() === 'phone' && !printable;
   const r = report;
   const s = r.student_ratings;
   const p = r.peer_ratings;
 
   return (
-    <View style={{ gap: space.lg }}>
+    <View {...(Platform.OS === 'web' && printable ? { dataSet: { printable: true } } : {})} style={{ gap: space.lg }}>
       {printable && (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, borderBottomWidth: 2, borderBottomColor: colors.navy, paddingBottom: space.md }}>
           <LogoMark size={44} />
@@ -61,6 +63,15 @@ export function ReportView({ report, printable, schoolName }: { report: FacultyR
 
       {r.classes.length > 0 && (
         <Panel title={tr('By class', 'Ayon sa klase')}>
+          {phone ? r.classes.map((c, i) => (
+            <View key={i} style={{ gap: 8, paddingVertical: 8, borderTopWidth: i ? 1 : 0, borderColor: colors.borderSoft }}>
+              <Txt size={text.body} weight="medium">{[c.subject_code, c.subject_name, c.section].filter(Boolean).join(' · ')}</Txt>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, justifyContent: 'space-between' }}>
+                <Txt size={text.small} color={colors.muted}>{tr(`${c.responses} responses`, `${c.responses} sagot`)}</Txt>
+                <Txt weight="semibold" size={text.body}>{tr(`Average ${formatRating(c.average)} / 5`, `Average ${formatRating(c.average)} / 5`)}</Txt>
+              </View>
+            </View>
+          )) : <>
           <View style={{ flexDirection: 'row', paddingBottom: space.xs, borderBottomWidth: 1, borderBottomColor: colors.border }}>
             <Txt weight="semibold" size={text.small} color={colors.muted} style={{ flex: 2 }}>{tr('Class', 'Klase')}</Txt>
             <Txt weight="semibold" size={text.small} color={colors.muted} style={{ flex: 1, textAlign: 'right' }}>{tr('Responses', 'Sagot')}</Txt>
@@ -68,11 +79,12 @@ export function ReportView({ report, printable, schoolName }: { report: FacultyR
           </View>
           {r.classes.map((c, i) => (
             <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
-              <Txt size={text.body} style={{ flex: 2 }} numberOfLines={2}>{[c.subject_code, c.subject_name, c.section].filter(Boolean).join(' · ')}</Txt>
+              <Txt size={text.body} style={{ flex: 2 }}>{[c.subject_code, c.subject_name, c.section].filter(Boolean).join(' · ')}</Txt>
               <Txt size={text.body} style={{ flex: 1, textAlign: 'right' }}>{String(c.responses)}</Txt>
               <Txt weight="semibold" size={text.body} style={{ flex: 1, textAlign: 'right' }}>{formatRating(c.average)}</Txt>
             </View>
           ))}
+          </>}
         </Panel>
       )}
 
@@ -113,7 +125,7 @@ function StudentSummary({ report }: { report: FacultyReport }) {
   const labels: Record<string, string> = { '1': tr('Poor', 'Mahina'), '2': tr('Fair', 'Katamtaman'), '3': tr('Good', 'Mabuti'), '4': tr('Very good', 'Napakabuti'), '5': tr('Excellent', 'Napakahusay') };
 
   return (
-    <View style={{ flex: 2, minWidth: 300, backgroundColor: colors.card, borderRadius: 22, padding: space.lg, borderWidth: 1, borderColor: colors.borderSoft, flexDirection: 'row', flexWrap: 'wrap', gap: space.xl }}>
+    <View style={{ flexGrow: 2, flexShrink: 1, flexBasis: 300, minWidth: 0, backgroundColor: colors.card, borderRadius: 22, padding: space.lg, borderWidth: 1, borderColor: colors.borderSoft, flexDirection: 'row', flexWrap: 'wrap', gap: space.xl }}>
       <View style={{ minWidth: 170, gap: 2, justifyContent: 'center' }}>
         <Txt weight="medium" size={text.body} color={colors.textSoft}>{tr('Student rating', 'Rating ng estudyante')}</Txt>
         {avg === null ? (
@@ -128,7 +140,7 @@ function StudentSummary({ report }: { report: FacultyReport }) {
         )}
         <Txt size={text.small} color={colors.muted}>{tr(`${s.overall.responses} response${s.overall.responses === 1 ? '' : 's'}`, `${s.overall.responses} sagot`)}</Txt>
         {diff !== null && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: space.xs }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: space.xs }}>
             <View style={{ height: 24, paddingHorizontal: 8, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: diff >= 0.05 ? colors.successBg : diff <= -0.05 ? colors.urgentBg : colors.track }}>
               <Txt weight="bold" size={text.caption} color={diff >= 0.05 ? colors.successFg : diff <= -0.05 ? colors.urgentFg : colors.textSoft}>
                 {diff >= 0.05 ? tr(`${diff.toFixed(2)} above`, `${diff.toFixed(2)} mas mataas`) : diff <= -0.05 ? tr(`${Math.abs(diff).toFixed(2)} below`, `${Math.abs(diff).toFixed(2)} mas mababa`) : tr('Same as', 'Kapareho ng')}
@@ -139,7 +151,7 @@ function StudentSummary({ report }: { report: FacultyReport }) {
         )}
       </View>
       {dist && total > 0 && (
-        <View style={{ flex: 1, minWidth: 240, gap: 8, justifyContent: 'center' }} accessible accessibilityLabel={tr('How students answered', 'Paano sumagot ang mga estudyante')}>
+        <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 240, minWidth: 0, gap: 8, justifyContent: 'center' }} accessible accessibilityLabel={tr('How students answered', 'Paano sumagot ang mga estudyante')}>
           <Txt weight="medium" size={text.small} color={colors.textSoft}>{tr('How students answered', 'Paano sumagot ang mga estudyante')}</Txt>
           {['5', '4', '3', '2', '1'].map((k) => {
             const n = dist[k] ?? 0;
@@ -147,7 +159,7 @@ function StudentSummary({ report }: { report: FacultyReport }) {
             const fill = colors[`rate${k}` as 'rate1'];
             return (
               <View key={k} style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }} accessible accessibilityLabel={`${k} ${labels[k]}: ${Math.round(pct * 100)}%`}>
-                <Txt weight="semibold" size={text.small} style={{ width: 78 }} numberOfLines={1}>{`${k} · ${labels[k]}`}</Txt>
+                <Txt weight="semibold" size={text.small} style={{ width: 90, flexShrink: 1 }}>{`${k} · ${labels[k]}`}</Txt>
                 <View style={{ flex: 1, height: 10, borderRadius: 5, backgroundColor: colors.track, overflow: 'hidden' }}>
                   <View style={{ width: `${Math.round(pct * 100)}%`, height: 10, borderRadius: 5, backgroundColor: fill }} />
                 </View>

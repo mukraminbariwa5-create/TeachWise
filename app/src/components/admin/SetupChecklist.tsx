@@ -15,9 +15,7 @@ const STEPS: Record<SetupStep['key'], { icon: IconName; title: () => string; hin
   profile: { icon: 'book', title: () => tr('School profile and contacts', 'Profile at contact ng paaralan'), hint: () => tr('Place, logo and a help email', 'Lugar, logo at help email'), href: '/admin/school' },
   departments: { icon: 'layers', title: () => tr('Departments and programs', 'Mga departamento at programa'), hint: () => tr('e.g. College of Computer Studies → BSIT', 'hal. College of Computer Studies → BSIT'), href: '/admin/academics?tab=departments' },
   semester: { icon: 'calendar', title: () => tr('Current semester', 'Kasalukuyang semestre'), hint: () => tr('So dashboards show this term’s classes', 'Para ipakita ang mga klase ngayong term'), href: '/admin/academics?tab=semesters' },
-  teachers: { icon: 'users', title: () => tr('Invite your teachers', 'Imbitahan ang mga guro'), hint: () => tr('Paste their names, send each a code', 'I-paste ang pangalan, padalhan ng code'), href: '/admin/users?invite=1' },
-  classes: { icon: 'grid', title: () => tr('Sections and classes', 'Mga section at klase'), hint: () => tr('Who teaches what to which section (paste from Excel)', 'Sino ang nagtuturo ng ano sa aling section'), href: '/admin/academics?tab=classes' },
-  students: { icon: 'shield', title: () => tr('Approved student IDs', 'Mga aprubadong student ID'), hint: () => tr('Paste the registrar’s list; students sign up themselves', 'I-paste ang listahan; mag-sign up ang estudyante'), href: '/admin/ids' },
+  admins: { icon: 'users', title: () => tr('Invite department deans', 'Imbitahan ang mga dean'), hint: () => tr('Deans manage their own teachers, students, approved IDs and classes', 'Ang dean ang mamamahala sa guro, estudyante, ID at klase ng departamento'), href: '/admin/users?invite=1' },
   period: { icon: 'clipboard', title: () => tr('First evaluation period', 'Unang evaluation period'), hint: () => tr('Everyone is notified when it opens', 'Maaabisuhan ang lahat pagbukas'), href: '/admin/evaluation' },
 };
 

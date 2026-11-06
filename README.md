@@ -6,19 +6,11 @@ Students rate their teachers in about three minutes per class. Teachers get clea
 
 ![Student home](docs/screenshots/student-home.png)
 
-| Rating a teacher | Teacher dashboard |
+<img src="docs/screenshots/student-phone.png" alt="Student dashboard with the five-button navigation and Professor Wise" width="320">
+
+| Teacher dashboard | School-admin dashboard |
 |---|---|
-| ![Rating a teacher](docs/screenshots/evaluate.png) | ![Teacher dashboard](docs/screenshots/teacher-dashboard.png) |
-| **Faculty report** | **Admin dashboard** |
-| ![Faculty report](docs/screenshots/report.png) | ![Admin dashboard](docs/screenshots/admin-dashboard.png) |
-| **Evaluation setup** | **People and invites** |
-| ![Evaluation setup](docs/screenshots/admin-evaluation.png) | ![People and invites](docs/screenshots/admin-people.png) |
-| **Sign in (pick your school)** | **Dark mode with Professor Wise** |
-| ![Sign in](docs/screenshots/sign-in.png) | ![Dark mode](docs/screenshots/dark-mode.png) |
-| **Professor Wise on a phone** | **Admin on a phone (dark)** |
-| <img src="docs/screenshots/wise.png" alt="Professor Wise on a phone" width="320"> | <img src="docs/screenshots/mobile.png" alt="Admin on a phone" width="320"> |
-| **Owner: TeachWise overview** | **Owner: approving schools** |
-| <img src="docs/screenshots/owner-overview.png" alt="Owner overview" width="320"> | <img src="docs/screenshots/owner-schools.png" alt="Owner schools list" width="320"> |
+| ![Teacher dashboard](docs/screenshots/teacher-dashboard.png) | ![Admin dashboard](docs/screenshots/admin-dashboard.png) |
 
 ## Features
 
@@ -31,16 +23,22 @@ Students rate their teachers in about three minutes per class. Teachers get clea
 **For teachers**
 - Dashboard with overall rating, trend over time, strongest areas and areas to focus on
 - Anonymous comments, shown only once enough students have answered (the school sets the minimum)
-- Peer evaluation of colleagues, if the school turns it on
+- Peer evaluation of active colleagues in the same assigned department, if the school turns it on; teachers without a department must ask their admin for an assignment
 - Full report with **Print / Save as PDF**, or a short summary to share from a phone
 
-**For school admins and deans**
-- Departments, programs, sections, subjects and class offerings, plus bulk class assignments pasted from a spreadsheet
-- Evaluation periods with automatic "now open" and "closes soon" notifications
-- Questions in English and Filipino; the form locks while a period is open so everyone answers the same thing
-- Approved student ID lists, staff invite codes, account requests, temporary passwords
-- Faculty reports, activity log, school settings (rating labels, term name, peer evaluation, minimum responses, logo)
-- Department admins see and manage only their own department
+**For school admins**
+- School profile, departments, programs, dean accounts and administrator invitations
+- Shared questionnaires, rating scales, semesters and evaluation dates, with automatic opening/closing notifications
+- School-wide read-only reports, activity and administrator account requests
+- Explicit, audited department transfers with previous evaluations preserved
+
+**For department deans**
+- Own department's teachers, students, approved IDs, teacher invitations and account requests
+- Subjects, sections and semester-specific class assignments, including spreadsheet imports
+- Own department's read-only results, reports and participation reminders
+- Read-only shared questionnaire and school calendar; submitted results cannot be changed by either role
+
+See [administrator responsibilities](docs/ADMIN-RESPONSIBILITIES.md) for the permission matrix and verification.
 
 **For the TeachWise owner**
 - Approve, pause or remove schools that apply from the app
@@ -48,8 +46,25 @@ Students rate their teachers in about three minutes per class. Teachers get clea
 
 **Throughout**
 - English and Filipino, light and dark mode, accessible labels, keyboard shortcuts on computers
+- Compact desktop navigation; mobile bottom tabs for students and teachers, with a left navigation drawer for school admins and deans
 - Works offline with cached data; push notifications on Android
-- Professor Wise answers common questions for each role
+- Professor Wise offers contextual AI guidance with Ollama: evaluation help, constructive feedback, study habits, teaching strategies and supportive conversation
+
+### Account matching and evaluation assignments
+
+Students can sign up only after the school supplies their approved name and section. Department admins assign teachers and subjects to a course/year/section and semester; matching teacher–subject pairs automatically appear on student Home for the school's active semester. Home displays that section and semester and refreshes assignments every 30 seconds. Assignments without a semester stay off student Home. Staff join through one-time invitations whose school-supplied identity, role and department are enforced by the API. Teacher peer evaluation stays strictly within their assigned department, even when colleagues teach different subjects. BSED and BSIT should be configured as separate departments if they require separate peer groups. Both roles need an open evaluation period. See [the account and assignment review](docs/ACCOUNT-ASSIGNMENT-REVIEW.md) for verification evidence and local setup still required.
+
+### Professor Wise AI setup
+
+Install Ollama on the API server and run `ollama pull gemma3:4b`. In `backend/.env`, set `OLLAMA_ENABLED=true`, `OLLAMA_ENDPOINT=http://127.0.0.1:11434` and `OLLAMA_MODEL=gemma3:4b`, then run `php artisan migrate` and `php artisan config:clear`. Start MySQL in XAMPP before using TeachWise. `start-teachwise.bat` starts the standard local Ollama installation when needed and runs `php artisan wise:check` to report missing services, schema updates or models. Ollama must stay running. Use `php artisan wise:check --warm` to preload it before the first conversation. The endpoint is reached by Laravel, not by the student's phone. A hosted API needs its own reachable Ollama service; a developer's localhost is not accessible to it.
+
+Wise generates substantive replies with Ollama. Simple greetings and thank-yous use a fast local acknowledgement without loading the model or querying evaluation statistics. Its reviewed guidance and product knowledge live in `backend/app/Support/WisePrompt.php`. It receives verified role-specific data plus up to 12 recent turns from the selected conversation (bounded by context size). Long feedback is shortened before entering the context; very long multilingual questions can expand the model context window. Wise is an AI guidance assistant, not a licensed counselor. Teacher details remain hidden below the school's minimum response threshold.
+
+Laptop and desktop chat pages use a narrow app-navigation rail, one conversation sidebar, and a readable chat column. The 72-pixel app rail stays compact across all desktop pages with no expand/collapse control. Page changes use a subtle 200-millisecond fade and settling motion, respecting reduced-motion settings. Phones, tablets and compact floating panels use the menu beside Professor Wise. Both contain **New conversation**, **History**, **Settings** and **Delete this conversation**. Each topic has its own messages and model context. Topic titles come from the first substantive message after a greeting; no extra title-generation model call is needed. History and earlier messages can be paged. Existing messages are preserved as an earlier conversation when the conversation migration runs. Deleting a topic preserves other chats and evaluations. The selected numeric topic ID survives browser refresh in session storage, while titles and conversation text are excluded from persistent device caching. Chats remain saved to the account until deleted and do not automatically train the model. Messages use compact text and render bold emphasis. Wise may use an occasional context-appropriate emoji, while serious or sensitive guidance stays free of decorative emojis.
+
+Message retries reuse a request ID so a lost connection cannot create a duplicate saved turn. Sending and clearing are serialized per user, and question/reply pairs are saved atomically. A truncated model reply is labeled with an invitation to continue. The normal backend test suite never calls live Ollama. Optional real-model API checks run with `php vendor/phpunit/phpunit/phpunit tests/Live/WiseLiveTest.php` using an in-memory SQLite database. Web control checks are in `app/scripts/verify-wise.cjs`; all their API responses are isolated fixtures. The separate `verify-wise-live.cjs` script requires an explicitly configured, isolated demo API so live browser tests do not write to school accounts.
+
+The installed model determines reasoning quality. The default uses Gemma 3 4B; changing the prompt does not upgrade the model itself. Set `OLLAMA_MODEL` to another installed, chat-capable model if the server has sufficient resources. `OLLAMA_TIMEOUT` defaults to 120 seconds and `OLLAMA_MAX_TOKENS` to 700. If the service fails, replies explicitly disclose limited built-in mode; check the Laravel log for the technical cause. The chat API returns `source: ollama` for generated answers, `source: quick` for lightweight greetings/acknowledgements, and `source: rules` for fallback answers.
 
 ## Tech stack
 
@@ -115,6 +130,8 @@ app/                     Expo app (Android + web)
   src/app/               Screens by role: student/, teacher/, admin/, platform/, plus sign-in and join pages
   src/components/        UI kit, charts, Professor Wise, admin tables and forms
   src/api/  src/auth/    API hooks and sign-in state
+  scripts/               Reusable browser and release checks
+docs/                    Permissions, assignment flows, responsive review and testing guide
 *.bat                    One-click helpers for Windows
 DEPLOY.md                Hosting, web app, APK and Google Play
 STORE_LISTING.md         Play Store texts (EN/FIL), content rating, data safety answers
@@ -122,12 +139,14 @@ STORE_LISTING.md         Play Store texts (EN/FIL), content rating, data safety 
 
 ## Tests
 
-72 API tests (479 assertions) cover sign-up and recovery, anonymous evaluation, teacher privacy rules, admin tools, school separation and publish-readiness checks.
+The API suite covers sign-up and roster matching, anonymous student and department peer evaluations, school/dean permissions, historical results, school separation, account identity, and Professor Wise conversations.
 
 ```
 cd backend
 php artisan test
 ```
+
+Run `npm run typecheck` and `npm run build:web` from `app/` for the frontend checks. See [the testing guide](docs/TESTING.md) for browser checks, isolated fixtures and optional live-model verification.
 
 ## Deploying
 

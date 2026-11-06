@@ -25,7 +25,7 @@ class AdminTest extends ApiTestCase
 
     public function test_admins_correct_accounts_but_never_create_them(): void
     {
-        $me = $this->actingAsUsername('admin');
+        $me = $this->actingAsUsername('ccsdean');
         $aisha = User::where('username', 'aisha')->first();
         $liza = User::where('username', 'lsantos')->first();
         $other = Section::where('id', '!=', $aisha->studentProfile->section_id)->first();
@@ -37,13 +37,13 @@ class AdminTest extends ApiTestCase
         $this->putJson("/api/admin/users/{$aisha->id}", ['section_id' => $other->id, 'name' => 'Aisha M. Tan'])
             ->assertOk()->assertJsonPath('user.section.id', $other->id)->assertJsonPath('user.name', 'Aisha M. Tan');
         $this->putJson("/api/admin/users/{$aisha->id}", ['role' => 'admin'])->assertStatus(422);   // students stay students
-        $this->putJson("/api/admin/users/{$me->id}", ['is_active' => false])->assertStatus(422);  // can't lock yourself out
+        $this->putJson("/api/admin/users/{$me->id}", ['is_active' => false])->assertNotFound();  // deans cannot manage administrator accounts
 
         $temp = $this->postJson("/api/admin/users/{$aisha->id}/temporary-password")->assertOk()->json('temporary_password');
         $this->postJson('/api/auth/login', ['login' => 'aisha', 'password' => $temp])->assertOk();
 
         // Teachers with classes or results are turned off, never deleted.
-        $this->actingAsUsername('admin');
+        $this->actingAsUsername('ccsdean');
         $this->deleteJson("/api/admin/users/{$liza->id}")->assertStatus(422);
         $this->putJson("/api/admin/users/{$liza->id}", ['is_active' => false])->assertOk();
         $this->postJson('/api/auth/login', ['login' => 'lsantos', 'password' => 'password'])->assertStatus(422);
@@ -51,7 +51,7 @@ class AdminTest extends ApiTestCase
 
     public function test_admin_can_assign_a_class_but_not_twice(): void
     {
-        $this->actingAsUsername('admin');
+        $this->actingAsUsername('ccsdean');
         $payload = [
             'teacher_id' => User::where('username', 'lsantos')->value('id'),
             'subject_id' => Subject::where('code', 'IT 302')->value('id'),
@@ -73,7 +73,7 @@ class AdminTest extends ApiTestCase
 
     public function test_reminders_go_to_students_with_pending_evaluations(): void
     {
-        $this->actingAsUsername('admin');
+        $this->actingAsUsername('ccsdean');
 
         $sent = $this->postJson('/api/admin/reminders')->assertOk()->json('sent');
         $this->assertGreaterThan(0, $sent);

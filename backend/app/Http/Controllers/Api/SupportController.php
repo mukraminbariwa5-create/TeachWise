@@ -23,7 +23,7 @@ class SupportController extends Controller
         ]);
         $user = $request->user();
         // Students and teachers write to their school's admins; admins (and the owner) write to TeachWise support.
-        $toTeachwise = $user->isAdmin() || $user->isPlatform();
+        $toTeachwise = $user->isSchoolAdmin() || $user->isPlatform();
 
         $message = SupportMessage::create([
             'user_id' => $user->id,
@@ -40,7 +40,7 @@ class SupportController extends Controller
         $title = $data['kind'] === 'problem' ? 'Problem reported' : 'New message';
         $recipients = $toTeachwise
             ? User::withoutGlobalScopes()->where('role', User::ROLE_PLATFORM)->where('is_active', true)->whereKeyNot($user->id)->get()
-            : Notifier::admins()->where('id', '!=', $user->id);
+            : Notifier::accountAdmins($user);
         Notifier::send($recipients, 'account', $title, "{$user->name}: ".mb_strimwidth($data['message'], 0, 140, '…'));
 
         return response()->json([

@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { PageStack } from '@/components/PageStack';
 import { useStudentDashboard } from '@/api/hooks';
 import { RoleGate } from '@/components/RoleGate';
 import { Shell, type NavItem, type PhoneTabs } from '@/components/Shell';
@@ -23,7 +23,7 @@ const phoneTabs = (): PhoneTabs => ({
   ],
   center: { href: '/student/wise', label: tr('Ask Wise', 'Tanong') },
   right: [
-    { icon: 'bell', label: tr('Alerts', 'Abiso'), onPress: () => useUI.getState().setNotificationsOpen(true) },
+    { icon: 'bell', label: tr('Alert', 'Abiso'), onPress: () => useUI.getState().setNotificationsOpen(true) },
     { href: '/student/account', icon: 'user', label: tr('Account', 'Account'), match: ['/student/profile', '/student/settings', '/student/help'] },
   ],
 });
@@ -66,11 +66,11 @@ function StudentShell() {
       nav={navItems()}
       settingsItem={settingsItem()}
       phoneTabs={phoneTabs()}
-      wise={{ subtitle: tr('Evaluation helper', 'Katulong sa evaluation'), placeholder: tr('Ask about evaluations…', 'Magtanong tungkol sa evaluation…'), chatHref: '/student/wise' }}
+      wise={{ subtitle: tr('Guidance assistant', 'Katulong sa paggabay'), placeholder: tr("What's on your mind?", 'Ano ang nasa isip mo?'), chatHref: '/student/wise' }}
       tipFor={tipFor}
       hideTabsOn={(path) => path.startsWith('/student/evaluate')}
     >
-      <Stack screenOptions={{ headerShown: false, animation: 'fade_from_bottom', contentStyle: { backgroundColor: 'transparent' } }} />
+      <PageStack />
     </Shell>
   );
 }

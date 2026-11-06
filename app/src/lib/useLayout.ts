@@ -5,7 +5,7 @@ export type LayoutSize = 'phone' | 'tablet' | 'desktop';
 /**
  * phone   < 768 px  : mobile design with the bottom tab bar
  * tablet  768–1099  : computer design with an icon-only sidebar
- * desktop ≥ 1100    : computer design with the full sidebar
+ * desktop ≥ 1100    : roomier content with the same compact navigation rail
  */
 export function useLayoutSize(): LayoutSize {
   const { width } = useWindowDimensions();

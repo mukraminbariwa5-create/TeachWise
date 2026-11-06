@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { Redirect } from 'expo-router';
+import { useAuth } from '@/auth/store';
 import { ScrollView, TextInput, View } from 'react-native';
 import { ApiError } from '@/api/client';
 import { useAdminDelete, useAdminList, useAdminSave, type ApprovedId, type Section } from '@/api/admin';
@@ -15,6 +17,11 @@ type Filter = 'all' | 'waiting' | 'registered';
 
 /** Student IDs allowed to create an account. Paste a list from a spreadsheet to add many at once. */
 export default function ApprovedIdsScreen() {
+  const dept = useAuth((s) => s.user?.admin_scope === 'department');
+  return dept ? <ApprovedIdsContent /> : <Redirect href="/admin" />;
+}
+
+function ApprovedIdsContent() {
   const list = useAdminList<ApprovedId>('whitelist');
   const del = useAdminDelete('whitelist');
   const [q, setQ] = useState('');
@@ -24,6 +31,7 @@ export default function ApprovedIdsScreen() {
 
   const all = list.data?.data ?? [];
   const waiting = all.filter((w) => !w.registered).length;
+  const incomplete = all.filter((w) => !w.registered && (!w.name?.trim() || !w.section_id)).length;
   const rows = all.filter((w) => (filter === 'all' || (filter === 'registered') === w.registered) && (!q || `${w.id_number} ${w.name ?? ''}`.toLowerCase().includes(q.toLowerCase())));
 
   const remove = async (w: ApprovedId) => {
@@ -41,6 +49,7 @@ export default function ApprovedIdsScreen() {
           <Chip label={tr(`Signed up (${all.length - waiting})`, `Naka-sign up (${all.length - waiting})`)} on={filter === 'registered'} onPress={() => setFilter('registered')} />
         </ScrollView>
       </Toolbar>
+      {incomplete > 0 && <Txt color={colors.pendingFg}>{tr(`${incomplete} ID(s) need an approved name and section before signup. Paste their complete records using Add IDs to update them.`, `${incomplete} ID ang nangangailangan ng aprubadong pangalan at section bago mag-sign up. I-paste ang kumpletong rekord gamit ang Magdagdag ng ID para i-update.`)}</Txt>}
       <DataList
         rows={rows}
         keyOf={(w) => w.id}
@@ -50,7 +59,7 @@ export default function ApprovedIdsScreen() {
           { label: tr('ID number', 'ID number'), render: (w) => w.id_number },
           { label: tr('Name', 'Pangalan'), flex: 1.6, render: (w) => w.name ?? '—', phone: true },
           { label: tr('Section', 'Section'), render: (w) => w.section?.label ?? '—', phone: true },
-          { label: tr('Status', 'Status'), render: (w) => (w.registered ? <Pill label={tr('Signed up', 'Naka-sign up')} tone="green" /> : <Pill label={tr('Not yet', 'Hindi pa')} tone="orange" />), phone: true },
+          { label: tr('Status', 'Status'), render: (w) => (w.registered ? <Pill label={tr('Signed up', 'Naka-sign up')} tone="green" /> : <Pill label={!w.name?.trim() || !w.section_id ? tr('Needs details', 'Kulang ang detalye') : tr('Ready for signup', 'Handa sa sign-up')} tone="orange" />), phone: true },
         ]}
         right={(w) => <Button title={tr('Remove', 'Alisin')} variant="outline" onPress={() => remove(w)} />}
       />
@@ -68,7 +77,7 @@ interface Parsed {
 
 /** Turns pasted lines into entries: "ID", "ID, Name" or "ID, Name, Section" (commas or tabs). */
 function parse(raw: string, sections: Section[]): Parsed[] {
-  const byLabel = new Map(sections.map((s) => [s.label.replace(/\s+/g, '').toLowerCase(), s.id]));
+  const byLabel = new Map(sections.map((s) => [s.label.replace(/[\s-]+/g, '').toLowerCase(), s.id]));
   const seen = new Set<string>();
   return raw
     .split(/\r?\n/)
@@ -78,7 +87,7 @@ function parse(raw: string, sections: Section[]): Parsed[] {
       id_number: id,
       name: name || null,
       sectionText: section || null,
-      section_id: section ? (byLabel.get(section.replace(/\s+/g, '').toLowerCase()) ?? null) : null,
+      section_id: section ? (byLabel.get(section.replace(/[\s-]+/g, '').toLowerCase()) ?? null) : null,
     }))
     .filter((p) => (seen.has(p.id_number) ? false : (seen.add(p.id_number), true)));
 }
@@ -89,6 +98,7 @@ function ImportSheet({ visible, onClose }: { visible: boolean; onClose: () => vo
   const [raw, setRaw] = useState('');
   const entries = useMemo(() => parse(raw, sections.data?.data ?? []), [raw, sections.data]);
   const unknown = entries.filter((e) => e.sectionText && !e.section_id);
+  const incomplete = entries.filter((e) => !e.name || !e.section_id);
 
   const submit = () =>
     save.mutate(
@@ -106,10 +116,10 @@ function ImportSheet({ visible, onClose }: { visible: boolean; onClose: () => vo
   return (
     <Sheet visible={visible} onClose={onClose} title={tr('Add approved IDs', 'Magdagdag ng aprubadong ID')} maxWidth={620}>
       <Txt size={text.body} color={colors.textSoft} style={{ lineHeight: 22 }}>
-        {tr('Paste one student per line. Copy straight from Excel or Google Sheets: ID number, then name and section if you have them.', 'Isang estudyante bawat linya. Kopyahin mula sa Excel o Google Sheets: ID number, saka pangalan at section kung meron.')}
+        {tr('Paste one student per line: ID number, approved full name and section. You can update approved records before signup. Use People to correct enrolled students so their account and approved record stay together.', 'Isang estudyante bawat linya: ID number, aprubadong buong pangalan at section. Maa-update ang rekord bago mag-sign up. Gamitin ang People para itama ang naka-enroll na estudyante upang magkatugma ang account at aprubadong rekord.')}
       </Txt>
       <View style={{ backgroundColor: colors.surface, borderRadius: 14, padding: space.sm }}>
-        <Txt size={text.small} color={colors.muted} style={{ fontFamily: fonts.regular }}>{'2026-0101, Nadia Hassan, BSIT 4A\n2026-0102, Omar Tulawie, BSIT 4A\n2026-0103'}</Txt>
+        <Txt size={text.small} color={colors.muted} style={{ fontFamily: fonts.regular }}>{'2026-0101, Nadia Hassan, BSIT 2A\n2026-0102, Omar Tulawie, BSIT 2A'}</Txt>
       </View>
       <TextInput
         value={raw}
@@ -122,7 +132,7 @@ function ImportSheet({ visible, onClose }: { visible: boolean; onClose: () => vo
         accessibilityLabel={tr('IDs to add', 'Mga ID na idadagdag')}
         style={{ minHeight: 160, maxHeight: 280, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card, padding: space.md, fontFamily: fonts.regular, fontSize: 15, color: colors.text, textAlignVertical: 'top' }}
       />
-      {entries.length > 0 && (
+      {entries.length > 0 && incomplete.length === 0 && (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
           <Icon name="checkCircle" size={16} color={colors.successFg} strokeWidth={2.2} />
           <Txt weight="semibold" size={text.body} color={colors.successFg}>{tr(`${entries.length} ID${entries.length === 1 ? '' : 's'} ready to add`, `${entries.length} ID ang handang idagdag`)}</Txt>
@@ -132,11 +142,12 @@ function ImportSheet({ visible, onClose }: { visible: boolean; onClose: () => vo
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: space.xs, backgroundColor: colors.pendingBg, borderRadius: 14, padding: space.sm }}>
           <Icon name="info" size={16} color={colors.pendingFg} />
           <Txt size={text.small} color={colors.pendingFg} style={{ flex: 1, lineHeight: 19 }}>
-            {tr(`Section not found for ${unknown.length} line(s) (e.g. “${unknown[0].sectionText}”). They’ll be added without a section; students can pick it when signing up.`, `Hindi nahanap ang section sa ${unknown.length} linya (hal. “${unknown[0].sectionText}”). Idadagdag sila nang walang section; puwede nilang piliin ito sa pag-sign up.`)}
+            {tr(`Section not found for ${unknown.length} line(s) (e.g. “${unknown[0].sectionText}”). Create the section first or correct its label.`, `Hindi nahanap ang section sa ${unknown.length} linya (hal. “${unknown[0].sectionText}”). Gawin muna ang section o itama ang label nito.`)}
           </Txt>
         </View>
       )}
-      <Button title={entries.length ? tr(`Add ${entries.length} ID${entries.length === 1 ? '' : 's'}`, `Idagdag ang ${entries.length} ID`) : tr('Add IDs', 'Idagdag ang mga ID')} size="lg" disabled={!entries.length} loading={save.isPending} onPress={submit} />
+      {incomplete.length > 0 && <Txt color={colors.pendingFg}>{tr(`${incomplete.length} line(s) need a name and a recognized section.`, `${incomplete.length} linya ang nangangailangan ng pangalan at kinikilalang section.`)}</Txt>}
+      <Button title={entries.length ? tr(`Add ${entries.length} ID${entries.length === 1 ? '' : 's'}`, `Idagdag ang ${entries.length} ID`) : tr('Add IDs', 'Idagdag ang mga ID')} size="lg" disabled={!entries.length || incomplete.length > 0} loading={save.isPending} onPress={submit} />
     </Sheet>
   );
 }

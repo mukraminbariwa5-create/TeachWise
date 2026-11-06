@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Models\Section;
+use App\Models\Semester;
+use App\Models\Subject;
 use App\Support\AdminScope;
 use App\Support\Tenant;
 use App\Http\Controllers\Controller;
@@ -28,6 +30,8 @@ class OfferingController extends Controller
             ->map(fn (ClassOffering $o) => Present::offering($o) + [
                 'teacher' => Present::person($o->teacher),
                 'semester' => $o->semester?->name,
+                'semester_id' => $o->semester_id,
+                'section_id' => $o->section_id,
             ]);
 
         return response()->json(['data' => $offerings]);
@@ -63,20 +67,28 @@ class OfferingController extends Controller
 
     private function validated(Request $request, ?ClassOffering $offering = null): array
     {
+        if (! $request->filled('semester_id')) {
+            $request->merge(['semester_id' => $offering?->semester_id ?? Semester::current()?->id]);
+        }
         $data = $request->validate([
             'teacher_id' => ['required', 'integer', Tenant::exists('users')],
             'subject_id' => ['required', 'integer', Tenant::exists('subjects')],
             'section_id' => ['required', 'integer', Tenant::exists('sections')],
-            'semester_id' => ['nullable', 'integer', Tenant::exists('semesters')],
+            'semester_id' => ['required', 'integer', Tenant::exists('semesters')],
             'schedule' => ['nullable', 'string', 'max:60'],
         ]);
 
         $teacher = User::find($data['teacher_id']);
-        abort_unless($teacher?->isTeacher(), 422, 'The selected user is not a teacher.');
+        abort_unless($teacher?->isTeacher() && $teacher->is_active, 422, 'Choose an active teacher.');
         if (AdminScope::limited()) {
             $ownSection = AdminScope::sections(Section::whereKey($data['section_id']))->exists();
-            abort_unless($ownSection || $teacher->department_id === AdminScope::departmentId(), 422, 'Choose a section or a teacher from your department.');
+            $ownSubject = AdminScope::subjects(Subject::whereKey($data['subject_id']))->exists();
+            abort_unless($ownSection && $ownSubject && $teacher->department_id === AdminScope::departmentId(), 422, 'Choose a section, subject and teacher from your department.');
         }
+
+        abort_if($offering && $offering->evaluations()->exists()
+            && collect($data)->only(['teacher_id', 'subject_id', 'section_id', 'semester_id'])->contains(fn ($value, $key) => (int) $value !== (int) $offering->$key),
+            422, 'This class already has evaluations. Create a new assignment to preserve its history.');
 
         $duplicate = ClassOffering::query()
             ->where(collect($data)->only(['teacher_id', 'subject_id', 'section_id'])->all())

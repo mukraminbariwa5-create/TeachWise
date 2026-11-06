@@ -32,6 +32,7 @@ class ImportController extends Controller
             'rows.*.schedule' => ['nullable', 'string', 'max:60'],
         ]);
         $semester = Semester::current();
+        abort_unless($semester, 422, 'Ask your school admin to set the current semester before importing classes.');
         $created = 0;
         $errors = [];
 
@@ -46,18 +47,18 @@ class ImportController extends Controller
                 }
                 $section = $this->section($row['section']);
                 if (! $section) {
-                    $errors[] = ['row' => $line, 'message' => "Couldn’t read the section “{$row['section']}”. Use a format like BSIT 3A."];
+                    $errors[] = ['row' => $line, 'message' => "Check the section “{$row['section']}” and its department. Use a format like BSIT 3A."];
 
                     continue;
                 }
-                if (AdminScope::limited() && $teacher->department_id !== AdminScope::departmentId() && ! AdminScope::sections(Section::whereKey($section->id))->exists()) {
+                if (AdminScope::limited() && ($teacher->department_id !== AdminScope::departmentId() || ! AdminScope::sections(Section::whereKey($section->id))->exists())) {
                     $errors[] = ['row' => $line, 'message' => 'Outside your department.'];
 
                     continue;
                 }
                 $subject = $this->subject($row['subject_code'] ?? null, $row['subject_name'] ?? null);
                 if (! $subject) {
-                    $errors[] = ['row' => $line, 'message' => 'Each row needs a subject code or name.'];
+                    $errors[] = ['row' => $line, 'message' => 'Use a subject code or name from your department.'];
 
                     continue;
                 }
@@ -83,6 +84,8 @@ class ImportController extends Controller
         $who = trim($who);
 
         return User::where('role', User::ROLE_TEACHER)
+            ->where('is_active', true)
+            ->when(AdminScope::limited(), fn ($q) => $q->where('department_id', AdminScope::departmentId()))
             ->where(fn ($q) => $q->where('id_number', $who)->orWhere('username', $who)->orWhere('email', $who)->orWhere('name', $who))
             ->first();
     }
@@ -95,6 +98,14 @@ class ImportController extends Controller
         }
         [$course, $year, $name] = [strtoupper($m[1]), (int) $m[2], strtoupper($m[3])];
         $program = Program::where('code', $course)->first();
+        if (AdminScope::limited() && (! $program || $program->department_id !== AdminScope::departmentId())) {
+            return null;
+        }
+
+        $existing = Section::where(['course' => $course, 'year_level' => $year, 'name' => $name])->first();
+        if ($existing) {
+            return ! AdminScope::limited() || AdminScope::sections(Section::whereKey($existing->id))->exists() ? $existing : null;
+        }
 
         return Section::firstOrCreate(['course' => $course, 'year_level' => $year, 'name' => $name], ['program_id' => $program?->id]);
     }
@@ -107,6 +118,9 @@ class ImportController extends Controller
             return null;
         }
         $existing = $code ? Subject::where('code', $code)->first() : Subject::where('name', $name)->first();
+        if ($existing && AdminScope::limited() && $existing->department_id !== AdminScope::departmentId()) {
+            return null;
+        }
 
         return $existing ?? Subject::create(['code' => $code, 'name' => $name ?: $code, 'department_id' => AdminScope::departmentId()]);
     }

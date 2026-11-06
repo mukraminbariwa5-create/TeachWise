@@ -44,6 +44,8 @@ class ProgramController extends Controller
             'name' => ['required', 'string', 'max:150'],
         ]);
         $data['code'] = strtoupper(trim($data['code']));
+        abort_if($program && $program->department_id !== $data['department_id'] && $program->sections()->exists(),
+            422, 'This program has sections. Use individual department transfers instead of moving existing students through a program change.');
 
         return $data;
     }

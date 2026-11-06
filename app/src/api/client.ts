@@ -55,13 +55,16 @@ export function setUnauthorizedHandler(handler: () => void) {
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-export async function api<T>(path: string, options: { method?: Method; body?: unknown; token?: string | null; raw?: boolean } = {}): Promise<T> {
+export async function api<T>(path: string, options: { method?: Method; body?: unknown; token?: string | null; raw?: boolean; timeoutMs?: number } = {}): Promise<T> {
   const token = options.token !== undefined ? options.token : await getToken();
+  const controller = options.timeoutMs ? new AbortController() : undefined;
+  const timer = controller ? setTimeout(() => controller.abort(), options.timeoutMs) : undefined;
 
   let response: Response;
   try {
     response = await fetch(`${API_URL}${path}`, {
       method: options.method ?? 'GET',
+      signal: controller?.signal,
       headers: {
         Accept: options.raw ? 'text/csv, application/json' : 'application/json',
         'X-Lang': getLang(),
@@ -73,8 +76,13 @@ export async function api<T>(path: string, options: { method?: Method; body?: un
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
     });
   } catch {
+    if (controller?.signal.aborted) {
+      throw new ApiError(408, 'The reply took longer than expected. Please try your message again.');
+    }
     markOnline(false);
     throw new ApiError(0, `Can't reach the TeachWise server at ${API_URL}. Check that it is running and on the same network.`);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
   markOnline(true);
 

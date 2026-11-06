@@ -31,7 +31,7 @@ export default function PeopleScreen() {
   const [q, setQ] = useState('');
   const search = useDebounced(q.trim(), 350);
   const list = useAdminPages<AdminUser>('users', { role, search });
-  const sections = useAdminList<Section>('sections');
+  const sections = useAdminList<Section>('sections', {}, dept);
   const departments = useDepartments();
   const save = useAdminSave('users');
   const del = useAdminDelete('users');
@@ -52,13 +52,10 @@ export default function PeopleScreen() {
 
   // Admins correct records; they never create accounts or choose anyone's password.
   const fields: FieldDef[] = [
-    ...(staff && !dept && !self
-      ? [{ key: 'role', label: tr('Role', 'Role'), kind: 'select', required: true, options: [{ value: 'teacher', label: tr('Teacher', 'Guro') }, { value: 'admin', label: tr('Admin', 'Admin') }] } as FieldDef]
-      : []),
     { key: 'name', label: tr('Full name', 'Buong pangalan'), kind: 'text', icon: 'user', required: true, hint: tr('As in the school records', 'Gaya ng nasa records ng paaralan') },
     { key: 'id_number', label: tr('ID number', 'ID number'), kind: 'text', icon: 'clipboard', required: true },
     { key: 'email', label: tr('Email', 'Email'), kind: 'email' },
-    ...(row?.role === 'student' ? [{ key: 'section_id', label: tr('Section', 'Section'), kind: 'select', searchable: true, icon: 'layers', options: (sections.data?.data ?? []).map((s) => ({ value: s.id, label: s.label })) } as FieldDef] : []),
+    ...(row?.role === 'student' ? [{ key: 'section_id', label: tr('Section', 'Section'), kind: 'select', searchable: true, required: true, icon: 'layers', options: (sections.data?.data ?? []).map((s) => ({ value: s.id, label: s.label })) } as FieldDef] : []),
     ...(dept || !staff || self
       ? []
       : [
@@ -96,7 +93,7 @@ export default function PeopleScreen() {
   };
 
   return (
-    <Screen title={tr('People', 'Mga tao')} subtitle={dept ? tr(`Students and teachers in ${me?.department ?? 'your department'}`, `Mga estudyante at guro sa ${me?.department ?? 'departamento mo'}`) : tr('Students, teachers and admins', 'Mga estudyante, guro at admin')} maxWidth={1100} right={<Button title={tr('Invite teachers', 'Mag-imbita ng guro')} onPress={() => setInviting(true)} />} {...scrollHide}>
+    <Screen title={dept ? tr('People', 'Mga tao') : tr('Administrator accounts', 'Mga account ng admin')} subtitle={dept ? tr(`Students and teachers in ${me?.department ?? 'your department'}`, `Mga estudyante at guro sa ${me?.department ?? 'departamento mo'}`) : tr('Manage dean and school-admin accounts. Department people are managed by their dean.', 'Pamahalaan ang mga account ng dean at school admin. Ang dean ang namamahala sa tao ng departamento.')} maxWidth={1100} right={<Button title={dept ? tr('Invite teachers', 'Mag-imbita ng guro') : tr('Invite administrators', 'Mag-imbita ng admin')} onPress={() => setInviting(true)} />} {...scrollHide}>
       <Segmented
         label={tr('Show', 'Ipakita')}
         value={tab}
@@ -112,7 +109,7 @@ export default function PeopleScreen() {
             <SearchBox value={q} onChange={setQ} placeholder={tr('Search name, username or ID', 'Hanapin ang pangalan, username o ID')} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.xs }}>
               <Chip label={tr('Everyone', 'Lahat')} on={role === null} onPress={() => setRole(null)} />
-              {((dept ? ['student', 'teacher'] : ['student', 'teacher', 'admin']) as PersonRole[]).map((r) => (
+              {((dept ? ['student', 'teacher'] : ['admin']) as PersonRole[]).map((r) => (
                 <Chip key={r} label={roleLabel(r)} on={role === r} onPress={() => setRole(r)} />
               ))}
             </ScrollView>
@@ -128,7 +125,7 @@ export default function PeopleScreen() {
             empty={
               search || role
                 ? { title: tr('No matches', 'Walang tugma'), mood: 'think' }
-                : { title: tr('Nobody has joined yet', 'Wala pang sumasali'), message: tr('Teachers join with the invite codes you send. Students create their own accounts once their ID is on Approved IDs.', 'Sumasali ang guro gamit ang invite code na ipapadala mo. Gumagawa ng sariling account ang estudyante kapag nasa Approved IDs na ang ID nila.'), action: { label: tr('Invite teachers', 'Mag-imbita ng guro'), onPress: () => setInviting(true) } }
+                : { title: tr('Nobody has joined yet', 'Wala pang sumasali'), message: dept ? tr('Invite your department’s teachers and add complete student records under Approved IDs.', 'Imbitahan ang guro ng departamento at idagdag ang kumpletong rekord ng estudyante sa Approved IDs.') : tr('Invite a dean for each department. Deans manage their teachers, students and approved IDs.', 'Mag-imbita ng dean sa bawat departamento. Ang dean ang namamahala sa guro, estudyante at aprubadong ID.'), action: { label: dept ? tr('Invite teachers', 'Mag-imbita ng guro') : tr('Invite administrators', 'Mag-imbita ng admin'), onPress: () => setInviting(true) } }
             }
             columns={[
               { label: tr('Name', 'Pangalan'), flex: 2, render: (u) => u.name },
@@ -182,6 +179,7 @@ export default function PeopleScreen() {
 }
 
 function InviteList() {
+  const dept = useAuth((s) => s.user?.admin_scope === 'department');
   const q = useInvites();
   const del = useAdminDelete('invites');
   return (
@@ -189,7 +187,7 @@ function InviteList() {
       rows={q.data?.data ?? []}
       keyOf={(i) => i.id}
       loading={q.isLoading}
-      empty={{ title: tr('No invite codes yet', 'Wala pang invite code'), message: tr('Tap “Invite teachers” and paste their names. Each gets a one-time code.', 'Pindutin ang “Mag-imbita ng guro” at i-paste ang mga pangalan. May sariling code ang bawat isa.'), mood: 'point' }}
+      empty={{ title: tr('No invite codes yet', 'Wala pang invite code'), message: dept ? tr('Use Invite teachers to create department teacher codes.', 'Gamitin ang Mag-imbita ng guro para gumawa ng code sa departamento.') : tr('Use Invite administrators to appoint department deans.', 'Gamitin ang Mag-imbita ng admin para magtalaga ng dean.'), mood: 'point' }}
       columns={[
         { label: tr('Code', 'Code'), render: (i) => <Txt weight="bold" size={text.body} selectable style={{ letterSpacing: 1 }}>{i.code}</Txt> },
         { label: tr('For', 'Para kay'), flex: 1.6, render: (i) => i.name ?? i.email ?? tr('Anyone', 'Kahit sino'), phone: true },
@@ -204,7 +202,7 @@ function InviteList() {
 /** Paste names (one per line, optionally ", email"), pick the role and department, get one code each. */
 function InviteSheet({ visible, onClose, schoolName, deptOnly, departments, onCreated }: { visible: boolean; onClose: () => void; schoolName: string; deptOnly: boolean; departments: { value: number; label: string }[]; onCreated: () => void }) {
   const create = useCreateInvites();
-  const [role, setRole] = useState<'teacher' | 'admin'>('teacher');
+  const role = deptOnly ? 'teacher' : 'admin';
   const [deptId, setDeptId] = useState<number | null>(null);
   const [raw, setRaw] = useState('');
   const [made, setMade] = useState<InviteRow[]>([]);
@@ -235,17 +233,6 @@ function InviteSheet({ visible, onClose, schoolName, deptOnly, departments, onCr
   return (
     <>
       <Sheet visible={visible} onClose={onClose} title={tr('Invite people', 'Mag-imbita')} maxWidth={600}>
-        {!deptOnly && (
-          <Segmented
-            label={tr('Role', 'Role')}
-            value={role}
-            onChange={setRole}
-            options={[
-              { key: 'teacher', label: tr('Teachers', 'Mga guro'), icon: 'users' },
-              { key: 'admin', label: tr('Admins', 'Mga admin'), icon: 'shield' },
-            ]}
-          />
-        )}
         {!deptOnly && departments.length > 0 && (
           <View style={{ gap: space.xs }}>
             <Txt weight="medium" size={14} color={colors.textSoft}>{role === 'admin' ? tr('Admin for', 'Admin para sa') : tr('Department', 'Departamento')}</Txt>
@@ -264,7 +251,7 @@ function InviteSheet({ visible, onClose, schoolName, deptOnly, departments, onCr
           value={raw}
           onChangeText={setRaw}
           multiline
-          placeholder={'Prof. Maria Santos, msantos@school.edu.ph\nProf. Ramon Cruz'}
+          placeholder={deptOnly ? 'Prof. Maria Santos, msantos@school.edu.ph\nProf. Ramon Cruz' : 'Dean Maria Santos, dean@school.edu.ph'}
           placeholderTextColor={colors.placeholder}
           accessibilityLabel={tr('Names to invite', 'Mga pangalang iimbitahan')}
           style={{ minHeight: 130, maxHeight: 260, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card, padding: space.md, fontFamily: fonts.regular, fontSize: 15, color: colors.text, textAlignVertical: 'top' }}

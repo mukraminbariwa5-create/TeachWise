@@ -16,6 +16,7 @@ export default function AccountScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
   if (!user) return null;
+  const schoolAdmin = user.role === 'admin' && user.admin_scope === 'school';
   const go = (page: 'profile' | 'settings' | 'help') => router.push(routeFor(user.role, page) as Href);
 
   return (
@@ -28,8 +29,8 @@ export default function AccountScreen() {
       >
         <Avatar name={user.name} initials={user.initials} size={60} />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Txt weight="bold" size={text.title} numberOfLines={1}>{user.name}</Txt>
-          <Txt size={text.small} color={colors.muted} numberOfLines={1}>{[user.id_number, user.section?.label ?? user.department].filter(Boolean).join(' · ')}</Txt>
+          <Txt weight="bold" size={text.title} numberOfLines={schoolAdmin ? 3 : 1}>{user.name}</Txt>
+          <Txt size={text.small} color={colors.muted} numberOfLines={2}>{[user.id_number, schoolAdmin ? tr('School administrator', 'Admin ng paaralan') : user.section?.label ?? user.department].filter(Boolean).join(' · ')}</Txt>
         </View>
         <Icon name="chevronRight" size={18} color={colors.muted} strokeWidth={2.2} />
       </Pressable>
@@ -42,10 +43,11 @@ export default function AccountScreen() {
 
       {user.role === 'admin' && (
         <Section title={tr('Manage', 'Pamahalaan')}>
-          <ListRow icon="book" title={tr('Classes & sections', 'Klase at section')} onPress={() => router.push('/admin/academics')} />
+          <ListRow icon="book" title={user.admin_scope === 'department' ? tr('Classes & sections', 'Klase at section') : tr('School structure', 'Istruktura ng paaralan')} onPress={() => router.push('/admin/academics')} />
           {user.admin_scope !== 'department' && <ListRow icon="settings2" title={tr('School settings', 'Settings ng paaralan')} onPress={() => router.push('/admin/school')} />}
-          {user.admin_scope !== 'department' && <ListRow icon="clipboard" title={tr('Evaluation setup', 'Setup ng evaluation')} onPress={() => router.push('/admin/evaluation')} />}
-          <ListRow icon="shield" title={tr('Approved IDs', 'Mga aprubadong ID')} onPress={() => router.push('/admin/ids')} />
+          <ListRow icon="clipboard" title={user.admin_scope === 'department' ? tr('Shared evaluation framework', 'Patakaran ng evaluation') : tr('Evaluation setup', 'Setup ng evaluation')} onPress={() => router.push('/admin/evaluation')} />
+          {user.admin_scope === 'department' && <ListRow icon="shield" title={tr('Approved IDs', 'Mga aprubadong ID')} onPress={() => router.push('/admin/ids')} />}
+          {user.admin_scope !== 'department' && <ListRow icon="layers" title={tr('Department transfers', 'Paglipat ng departamento')} onPress={() => router.push('/admin/transfers')} />}
           <ListRow icon="barChart" title={tr('Reports', 'Mga report')} onPress={() => router.push('/admin/reports')} />
           {user.admin_scope !== 'department' && <ListRow icon="activity" title={tr('Activity', 'Aktibidad')} onPress={() => router.push('/admin/activity')} />}
           <ListRow icon="bell" title={tr('Notifications', 'Mga notification')} onPress={() => useUI.getState().setNotificationsOpen(true)} last />

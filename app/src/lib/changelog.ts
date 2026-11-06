@@ -4,7 +4,7 @@ import { tr } from './i18n';
 export function changelog(): Record<string, string[]> {
   return {
     '1.0.0': [
-      tr('Settings: appearance (System, Light, Dark), language, notifications and privacy in one place.', 'Settings: itsura (System, Light, Dark), wika, notifications at privacy sa iisang lugar.'),
+      tr('Settings: follow your device appearance or choose Light/Dark, plus language, notifications and privacy.', 'Settings: sundin ang itsura ng device o pumili ng Light/Dark, pati wika, notifications at privacy.'),
       tr('See and sign out your devices, download your data, or delete your account.', 'Tingnan at i-sign out ang mga device mo, i-download ang data mo, o burahin ang account.'),
       tr('Help center with quick answers, “Contact the admin” and “Report a problem”.', 'Help center na may mabilis na sagot, “Makipag-ugnayan sa admin” at “Mag-report ng problema”.'),
       tr('Push notifications when an evaluation opens and a day before it closes.', 'Push notification kapag nagbukas ang evaluation at isang araw bago ito magsara.'),

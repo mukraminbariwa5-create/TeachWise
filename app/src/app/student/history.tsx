@@ -11,7 +11,7 @@ import { tr } from '@/lib/i18n';
 import { useHideLauncher, useScrollHide } from '@/lib/ui';
 import { useIsWide } from '@/lib/useLayout';
 import { useTitle } from '@/lib/useTitle';
-import { colors, shadowStyle, space } from '@/theme';
+import { colors, space } from '@/theme';
 
 /** Evaluations the student has sent. A virtualized list, so long histories stay smooth. */
 export default function HistoryScreen() {
@@ -31,13 +31,13 @@ export default function HistoryScreen() {
       keyExtractor={(e) => String(e.id)}
       initialNumToRender={12}
       windowSize={7}
-      contentContainerStyle={{ paddingHorizontal: wide ? 52 : space.lg, paddingTop: wide ? 40 : 22, paddingBottom: 32, gap: 14, width: '100%', maxWidth: 960, alignSelf: 'center' }}
+      contentContainerStyle={{ paddingHorizontal: wide ? 28 : space.lg, paddingTop: wide ? 30 : 18, paddingBottom: 40, gap: 14, width: '100%', maxWidth: 1060, alignSelf: 'center' }}
       refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} tintColor={colors.accent} />}
       ListHeaderComponent={wide ? <PageHeader title={tr('History', 'Kasaysayan')} /> : <AppBar title={tr('History', 'Kasaysayan')} subtitle={tr('Your submitted evaluations', 'Mga naipasa mong evaluation')} />}
       ListEmptyComponent={<EmptyState mood="shy" title={tr('Nothing here yet', 'Wala pa rito')} message={tr('Your finished evaluations will show up here, so you can see what you’ve sent.', 'Lalabas dito ang mga natapos mong evaluation, para makita mo ang mga naipasa mo.')} />}
       renderItem={({ item: e, index }) => (
         <FadeIn delay={Math.min(index, 8) * 50}>
-          <View style={[{ backgroundColor: colors.card, borderRadius: 24, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }, shadowStyle('soft')]}>
+          <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <Avatar name={e.teacher.name} initials={e.teacher.initials} size={50} />
             <View style={{ flex: 1, gap: 2 }}>
               <Txt weight="semibold" size={17}>{e.teacher.name}</Txt>

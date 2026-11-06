@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\ClientError;
 use App\Models\SupportMessage;
 use App\Support\Present;
+use App\Support\AdminScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -39,7 +40,7 @@ class ActivityController extends Controller
     public function inbox(Request $request): JsonResponse
     {
         $status = $request->query('status', 'open');
-        $page = SupportMessage::query()
+        $page = AdminScope::supportMessages(SupportMessage::query())
             ->with('user.studentProfile.section')
             ->when(in_array($status, ['open', 'closed'], true), fn ($q) => $q->where('status', $status))
             ->where(fn ($q) => $q->whereNull('meta')->orWhereNull('meta->to'))
@@ -56,11 +57,13 @@ class ActivityController extends Controller
             'user' => $m->user ? Present::user($m->user) : null,
         ]);
 
-        return response()->json(array_merge($page->toArray(), ['open_count' => SupportMessage::where('status', 'open')->where(fn ($q) => $q->whereNull('meta')->orWhereNull('meta->to'))->count()]));
+        return response()->json(array_merge($page->toArray(), ['open_count' => AdminScope::supportMessages(SupportMessage::where('status', 'open'))->where(fn ($q) => $q->whereNull('meta')->orWhereNull('meta->to'))->count()]));
     }
 
     public function closeMessage(SupportMessage $message): JsonResponse
     {
+        AdminScope::check(AdminScope::supportMessages(SupportMessage::whereKey($message->id))->exists());
+        abort_if(data_get($message->meta, 'to') === 'teachwise', 404);
         $message->update(['status' => 'closed']);
 
         return response()->json(['message' => 'Marked as done.']);

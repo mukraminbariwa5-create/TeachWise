@@ -85,7 +85,7 @@ export default function AuthScreen() {
 
   const card = (
     <FadeIn delay={100} style={{ width: '100%', maxWidth: 480 }}>
-      <View style={[{ backgroundColor: colors.card, borderRadius: 36, padding: wide ? 40 : 22, gap: 20 }, shadowStyle('soft')]}>
+      <View style={[{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.borderSoft, padding: wide ? 28 : 20, gap: 20 }, shadowStyle('soft')]}>
         <View style={{ gap: 6 }}>
           <Txt weight="bold" size={wide ? 32 : 28} accessibilityRole="header">{mode === 'signup' ? tr('Create your account', 'Gumawa ng account') : tr('Welcome back', 'Maligayang pagbabalik')}</Txt>
           <Txt size={16} color={colors.muted} style={{ lineHeight: 23 }}>
@@ -151,13 +151,13 @@ export default function AuthScreen() {
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.page }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <OfflineBanner />
       <ScrollView contentContainerStyle={{ flexGrow: 1, padding: size === 'tablet' ? 14 : 28 }} keyboardShouldPersistTaps="handled">
-        <View style={{ flex: 1, flexDirection: 'row', backgroundColor: colors.frame, borderRadius: 44, padding: 14, minHeight: 720 }}>
-          <View style={{ flex: 1, paddingHorizontal: 48, paddingVertical: 40, gap: 28 }}>
+        <View style={{ flex: 1, flexDirection: 'row', backgroundColor: colors.frame, borderRadius: 24, padding: 12, minHeight: 640 }}>
+          <View style={{ flex: 1, paddingHorizontal: size === 'tablet' ? 20 : 36, paddingVertical: 28, gap: 24 }}>
             {header(54)}
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 26 }}>
-              <View pointerEvents="none" style={{ position: 'absolute', width: 460, height: 460, borderRadius: 230, backgroundColor: 'rgba(116,118,253,0.16)', top: '6%' }} />
+              <View pointerEvents="none" style={{ position: 'absolute', width: '90%', aspectRatio: 1, borderRadius: 230, backgroundColor: 'rgba(116,118,253,0.16)', top: '6%' }} />
               <FadeIn delay={150}>
-                <WiseSays mode={mode} size={220} bubbleSide="top" />
+                <WiseSays mode={mode} size={size === 'tablet' ? 150 : 190} bubbleSide="top" />
               </FadeIn>
               <FadeIn delay={260} style={{ alignItems: 'center', gap: 18, maxWidth: 480 }}>
                 <Txt weight="bold" size={32} color="#FFFFFF" style={{ textAlign: 'center', lineHeight: 40 }}>
@@ -167,7 +167,7 @@ export default function AuthScreen() {
               </FadeIn>
             </View>
           </View>
-          <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 36, alignItems: 'center', justifyContent: 'center', padding: 36 }}>
+          <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 20, alignItems: 'center', justifyContent: 'center', padding: 36 }}>
             {card}
           </View>
         </View>
@@ -232,9 +232,9 @@ function Tabs({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
           <Pressable
             key={t.key}
             accessibilityRole="tab"
-            accessibilityState={{ selected: on }}
+            accessibilityState={{ selected: on }} aria-selected={on}
             onPress={() => onChange(t.key)}
-            style={[{ flex: 1, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, on ? { backgroundColor: colors.card, ...shadowStyle('soft') } : null]}
+            style={[{ flex: 1, minHeight: 44, paddingVertical: 8, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }, on ? { backgroundColor: colors.card, ...shadowStyle('soft') } : null]}
           >
             <Txt weight={on ? 'semibold' : 'medium'} size={15} color={on ? colors.text : colors.muted}>{t.label}</Txt>
           </Pressable>

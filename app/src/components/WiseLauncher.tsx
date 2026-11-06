@@ -93,7 +93,7 @@ export function WiseLauncher({ subtitle, placeholder, tip, tipKey, docked, inset
   useEffect(() => () => setOpen(false), [setOpen]);
 
   // Docked chat has its own close button; the corner button steps aside.
-  if (open && docked) return null;
+  if ((open && docked) || out) return null;
 
   return (
     <Animated.View

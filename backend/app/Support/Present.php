@@ -23,7 +23,7 @@ class Present
             'username' => $user->username,
             'email' => $user->email,
             'role' => $user->role,
-            'department' => $user->departmentName(),
+            'department' => $user->isSchoolAdmin() ? null : $user->departmentName(),
             'department_id' => $user->department_id,
             // Department admins manage only their department; school admins everything.
             'admin_scope' => $user->isAdmin() ? ($user->department_id ? 'department' : 'school') : null,
@@ -43,7 +43,7 @@ class Present
             'id' => $user->id,
             'name' => $user->name,
             'initials' => $user->initials(),
-            'department' => $user->departmentName(),
+            'department' => $user->isSchoolAdmin() ? null : $user->departmentName(),
         ];
     }
 

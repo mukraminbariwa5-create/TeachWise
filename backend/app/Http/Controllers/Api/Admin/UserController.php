@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Support\Audit;
 use App\Models\StudentProfile;
 use App\Models\User;
+use App\Models\WhitelistedId;
 use App\Support\Notifier;
 use App\Support\Present;
 use Illuminate\Http\JsonResponse;
@@ -27,7 +28,7 @@ class UserController extends Controller
             'search' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $page = AdminScope::users(User::query())
+        $page = AdminScope::managedUsers(User::query())
             ->with('studentProfile.section')
             ->when($data['department_id'] ?? null, fn ($q, $id) => $q->where('department_id', $id))
             ->when($data['role'] ?? null, fn ($q, $role) => $q->where('role', $role))
@@ -52,20 +53,31 @@ class UserController extends Controller
     /**
      * Admins don't create accounts: students sign up with an approved ID and staff join with an invite,
      * so everyone picks their own password and agrees to the privacy notice themselves.
-     * Admins can correct records, move students, change a staff member's department or role, and turn accounts off.
+     * Deans correct department people; the school office manages administrator accounts.
+     * Cross-department student/teacher moves use the separate audited transfer endpoint.
      */
     public function update(Request $request, User $user): JsonResponse
     {
         $this->inScope($user);
         $data = $this->validated($request, $user);
+        $previousId = $user->id_number;
+        if (($data['is_active'] ?? true) === false || (array_key_exists('department_id', $data) && $data['department_id'] !== $user->department_id)) {
+            $this->keepDepartmentCovered($user);
+        }
 
-        DB::transaction(function () use ($user, $data) {
+        DB::transaction(function () use ($user, $data, $previousId) {
             $user->update(collect($data)->except('section_id')->all());
             if ($user->isStudent() && array_key_exists('section_id', $data)) {
                 StudentProfile::updateOrCreate(['user_id' => $user->id], ['section_id' => $data['section_id']]);
             }
+            if ($user->isStudent()) {
+                $sectionId = $data['section_id'] ?? $user->studentProfile()->value('section_id');
+                if ($sectionId) {
+                    WhitelistedId::updateOrCreate(['id_number' => $previousId], ['id_number' => $user->id_number, 'name' => $user->name, 'section_id' => $sectionId]);
+                }
+            }
         });
-        if (($data['is_active'] ?? true) === false) {
+        if (($data['is_active'] ?? true) === false || $user->wasChanged('department_id')) {
             $user->tokens()->delete();
         }
 
@@ -99,6 +111,7 @@ class UserController extends Controller
     {
         $this->inScope($user);
         abort_if($user->id === $request->user()->id, 422, 'You can’t delete your own account here. Use Settings → Delete account.');
+        $this->keepDepartmentCovered($user);
         $hasHistory = $user->offerings()->exists() || $user->evaluationsReceived()->exists() || $user->evaluationsGiven()->exists();
         abort_if($hasHistory, 422, 'This person has classes or evaluations. Turn their account off instead, so their records stay intact.');
         if ($user->isAdmin()) {
@@ -120,12 +133,15 @@ class UserController extends Controller
             'name' => ['sometimes', 'string', 'max:255'],
             'id_number' => ['sometimes', 'string', 'max:30', Tenant::unique('users', 'id_number')->ignore($user)],
             'email' => ['sometimes', 'nullable', 'email', 'max:255', Rule::unique('users')->ignore($user)],
-            // Students stay students. School admins can turn a teacher into an admin (e.g. a new dean) and back.
-            'role' => ['sometimes', Rule::in($staff && ! AdminScope::limited() ? ['teacher', 'admin'] : [$user->role])],
-            'department_id' => ['sometimes', 'nullable', 'integer', Tenant::exists('departments')],
-            'section_id' => ['sometimes', 'nullable', 'integer', Tenant::exists('sections')],
+            // Account administration never changes the person's role.
+            'role' => ['sometimes', Rule::in([$user->role])],
+            'department_id' => [AdminScope::limited() ? 'prohibited' : 'sometimes', 'nullable', 'integer', Tenant::exists('departments')],
+            'section_id' => ['sometimes', 'required', 'integer', Tenant::exists('sections')],
             'is_active' => ['sometimes', 'boolean'],
         ]);
+        abort_if(isset($data['id_number']) && $data['id_number'] !== $user->id_number
+            && WhitelistedId::where('id_number', $data['id_number'])->exists(), 422,
+            'That ID is already approved for someone else. Correct the approved records before changing this ID.');
 
         if ($self) {
             // Nobody can lock themselves out or change their own powers.
@@ -154,8 +170,17 @@ class UserController extends Controller
 
     private function inScope(User $user): void
     {
-        AdminScope::check(AdminScope::users(User::whereKey($user->id))->exists());
+        AdminScope::check(AdminScope::managedUsers(User::whereKey($user->id))->exists());
         // Department admins can't change other admins.
         abort_if(AdminScope::limited() && $user->isAdmin() && $user->id !== auth()->id(), 403, 'Only your school admin can change other admins.');
+    }
+
+    private function keepDepartmentCovered(User $user): void
+    {
+        if (! $user->isDepartmentAdmin() || ! $user->is_active) return;
+        $replacement = User::where('role', User::ROLE_ADMIN)->where('department_id', $user->department_id)->where('is_active', true)->whereKeyNot($user->id)->exists();
+        $people = User::where('is_active', true)->whereIn('role', [User::ROLE_TEACHER, User::ROLE_STUDENT])
+            ->where(fn ($q) => $q->where('department_id', $user->department_id)->orWhereHas('studentProfile.section.program', fn ($p) => $p->where('department_id', $user->department_id)))->exists();
+        abort_if($people && ! $replacement, 422, 'Assign another active dean before removing this department’s last administrator.');
     }
 }

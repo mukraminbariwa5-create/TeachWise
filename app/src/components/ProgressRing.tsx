@@ -1,12 +1,15 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
+import { useReducedMotion } from '@/lib/useReducedMotion';
 import { colors } from '@/theme';
 
 /** Animates from 0 up to `target` over `ms` the first time it renders, and eases to new values. */
 export function useCountUp(target: number, ms = 900) {
   const [value, setValue] = useState(0);
+  const reduced = useReducedMotion();
   useEffect(() => {
+    if (reduced) { setValue(target); return; }
     let frame = 0;
     const from = value;
     const start = Date.now();
@@ -19,7 +22,7 @@ export function useCountUp(target: number, ms = 900) {
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target, ms]);
+  }, [target, ms, reduced]);
   return value;
 }
 
@@ -68,7 +71,7 @@ export function ProgressRing({ value, size = 210, stroke = 30, color, track, ani
 export function ProgressBar({ value, height = 10, color }: { value: number; height?: number; color?: string }) {
   const v = useCountUp(Math.min(1, Math.max(0, value)));
   return (
-    <View style={{ height, borderRadius: 999, backgroundColor: colors.track, overflow: 'hidden' }}>
+    <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(Math.min(1, Math.max(0, value)) * 100) }} style={{ height, borderRadius: 999, backgroundColor: colors.track, overflow: 'hidden' }}>
       <View style={{ width: `${Math.round(v * 100)}%` as `${number}%`, height: '100%', borderRadius: 999, backgroundColor: color ?? colors.navy }} />
     </View>
   );

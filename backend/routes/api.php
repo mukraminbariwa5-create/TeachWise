@@ -71,6 +71,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     // Professor Wise chat (all roles)
     Route::middleware('role:admin,teacher,student')->group(function () {
+        Route::get('wise/conversations', [WiseController::class, 'conversations']);
+        Route::post('wise/conversations', [WiseController::class, 'createConversation'])->middleware('throttle:30,1,wise-create');
+        Route::delete('wise/conversations/{conversation}', [WiseController::class, 'destroyConversation'])->whereNumber('conversation');
         Route::get('wise/messages', [WiseController::class, 'index']);
         Route::post('wise/messages', [WiseController::class, 'send'])->middleware('throttle:20,1,r14');
         Route::delete('wise/messages', [WiseController::class, 'clear']);
@@ -98,22 +101,29 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('departments', [Admin\DepartmentController::class, 'index']);
         Route::apiResource('users', Admin\UserController::class)->except('store');
         Route::post('users/{user}/temporary-password', [Admin\UserController::class, 'temporaryPassword']);
-        Route::apiResource('subjects', Admin\SubjectController::class)->except('show');
-        Route::apiResource('sections', Admin\SectionController::class)->except('show');
-        Route::apiResource('offerings', Admin\OfferingController::class)->except('show');
+        Route::middleware('department_admin')->group(function () {
+            Route::apiResource('subjects', Admin\SubjectController::class)->except('show');
+            Route::apiResource('sections', Admin\SectionController::class)->except('show');
+            Route::apiResource('offerings', Admin\OfferingController::class)->except('show');
+            Route::apiResource('whitelist', Admin\WhitelistController::class)->only(['index', 'store', 'destroy']);
+            Route::post('import/classes', [Admin\ImportController::class, 'classes']);
+            Route::post('reminders', [Admin\DashboardController::class, 'sendReminders']);
+        });
         Route::get('semesters', [Admin\SemesterController::class, 'index']);
         Route::get('questions', [Admin\QuestionController::class, 'index']);
         Route::get('periods', [Admin\PeriodController::class, 'index']);
-        Route::apiResource('whitelist', Admin\WhitelistController::class)->only(['index', 'store', 'destroy']);
         Route::apiResource('invites', Admin\InviteController::class)->only(['index', 'store', 'destroy']);
-        Route::post('import/classes', [Admin\ImportController::class, 'classes']);
         Route::get('password-requests', [Admin\PasswordRequestController::class, 'index']);
         Route::post('password-requests/{passwordRequest}/resolve', [Admin\PasswordRequestController::class, 'resolve']);
         Route::get('reports/faculty.csv', [Admin\ReportController::class, 'facultyCsv']);
         Route::get('reports/faculty/{teacher}', [Admin\ReportController::class, 'faculty']);
+        Route::get('inbox', [Admin\ActivityController::class, 'inbox']);
+        Route::post('inbox/{message}/close', [Admin\ActivityController::class, 'closeMessage']);
 
         // Whole-school admins only.
         Route::middleware('school_admin')->group(function () {
+            Route::get('transfers/options', [Admin\TransferController::class, 'options']);
+            Route::post('transfers', [Admin\TransferController::class, 'store']);
             Route::put('school', [Admin\SchoolController::class, 'update']);
             Route::post('school/logo', [Admin\SchoolController::class, 'uploadLogo']);
             Route::delete('school/logo', [Admin\SchoolController::class, 'removeLogo']);
@@ -124,10 +134,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::apiResource('semesters', Admin\SemesterController::class)->only(['store', 'update', 'destroy']);
             Route::apiResource('questions', Admin\QuestionController::class)->only(['store', 'update', 'destroy']);
             Route::apiResource('periods', Admin\PeriodController::class)->only(['store', 'update', 'destroy']);
-            Route::post('reminders', [Admin\DashboardController::class, 'sendReminders']);
             Route::get('activity', [Admin\ActivityController::class, 'auditLog']);
-            Route::get('inbox', [Admin\ActivityController::class, 'inbox']);
-            Route::post('inbox/{message}/close', [Admin\ActivityController::class, 'closeMessage']);
             Route::get('app-errors', [Admin\ActivityController::class, 'errors']);
         });
     });

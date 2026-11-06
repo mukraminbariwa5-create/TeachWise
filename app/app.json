@@ -9,6 +9,7 @@
     "backgroundColor": "#F3F5FB",
     "android": {
       "package": "com.teachwise.app",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/brand/adaptive-icon.png",
         "backgroundColor": "#0C113E"

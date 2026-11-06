@@ -27,6 +27,7 @@ export function CrudSection<T extends { id: number }>({
   filters,
   note,
   canDelete = true,
+  readOnly = false,
 }: {
   resource: string;
   params?: Record<string, string | number | null | undefined>;
@@ -44,6 +45,7 @@ export function CrudSection<T extends { id: number }>({
   filters?: ReactNode;
   note?: string;
   canDelete?: boolean;
+  readOnly?: boolean;
 }) {
   const list = useAdminList<T>(resource, params);
   const save = useAdminSave(resource);
@@ -57,7 +59,7 @@ export function CrudSection<T extends { id: number }>({
 
   return (
     <View style={{ gap: space.md }}>
-      <Toolbar onAdd={() => setEditing('new')} addLabel={tr(`Add ${noun}`, `Magdagdag ng ${noun}`)}>
+      <Toolbar onAdd={readOnly ? undefined : () => setEditing('new')} addLabel={tr(`Add ${noun}`, `Magdagdag ng ${noun}`)}>
         {search && <SearchBox value={q} onChange={setQ} />}
         {filters}
       </Toolbar>
@@ -65,12 +67,12 @@ export function CrudSection<T extends { id: number }>({
         rows={rows}
         columns={columns}
         keyOf={(r) => r.id}
-        onPress={(r) => setEditing(r)}
+        onPress={readOnly ? undefined : (r) => setEditing(r)}
         right={right}
         loading={list.isLoading}
-        empty={q ? { title: tr('No matches', 'Walang tugma'), message: tr('Try a different search.', 'Subukan ang ibang hanap.'), mood: 'think' } : { ...empty, action: { label: tr(`Add ${noun}`, `Magdagdag ng ${noun}`), onPress: () => setEditing('new') } }}
+        empty={q ? { title: tr('No matches', 'Walang tugma'), message: tr('Try a different search.', 'Subukan ang ibang hanap.'), mood: 'think' } : { ...empty, action: readOnly ? undefined : { label: tr(`Add ${noun}`, `Magdagdag ng ${noun}`), onPress: () => setEditing('new') } }}
       />
-      <FormSheet
+      {!readOnly && <FormSheet
         visible={editing !== null}
         onClose={() => setEditing(null)}
         title={row ? tr(`Edit ${noun}`, `I-edit ang ${noun}`) : tr(`New ${noun}`, `Bagong ${noun}`)}
@@ -90,7 +92,7 @@ export function CrudSection<T extends { id: number }>({
             : undefined
         }
         deleteLabel={tr(`Delete this ${noun}?`, `Burahin ang ${noun} na ito?`)}
-      />
+      />}
     </View>
   );
 }

@@ -38,9 +38,12 @@ class QuestionController extends Controller
     {
         $data = $this->validated($request, true);
         // Translations and categories can be fixed any time; the questions themselves only between periods.
-        if (collect($data)->except(['text_fil', 'category_fil', 'category'])->filter(fn ($v, $k) => $question->{$k} != $v)->isNotEmpty()) {
+        if (collect($data)->except(['text_fil', 'category_fil'])->filter(fn ($v, $k) => $question->{$k} != $v)->isNotEmpty()) {
             $this->formLocked($question->audience);
         }
+        $rewritesHistory = collect($data)->only(['audience', 'type', 'text', 'category'])->contains(fn ($v, $k) => $question->{$k} != $v);
+        abort_if($rewritesHistory && EvaluationAnswer::where('question_id', $question->id)->exists(), 422,
+            'This question has submitted answers. Add a new question and deactivate this one for future periods; previous reports must keep their original criteria.');
         $question->update($data);
         Audit::log('question.updated', "Edited a question: {$question->text}", $question);
 

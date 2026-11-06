@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '@/api/client';
 import type { Period, Person, Question } from '@/api/types';
 import { Avatar } from '@/components/Avatar';
@@ -9,20 +10,19 @@ import { Confetti } from '@/components/Confetti';
 import { Icon } from '@/components/Icon';
 import { FadeIn } from '@/components/Motion';
 import { ProgressBar } from '@/components/ProgressRing';
-import { RichText } from '@/components/RichText';
 import { ScreenState } from '@/components/ScreenState';
 import { Txt } from '@/components/Txt';
-import { WiseHead, WiseMascot, type HeadMood, type Mood } from '@/components/WiseMascot';
+import { WiseMascot } from '@/components/WiseMascot';
 import { tap, toast, useHideLauncher } from '@/lib/ui';
-import { clearDraft, getDraft, saveDraft, type Draft } from '@/lib/drafts';
+import { useAuth } from '@/auth/store';
+import { scopedDraftId, clearDraft, getDraft, saveDraft, type Draft } from '@/lib/drafts';
 import { tr } from '@/lib/i18n';
+import { shortDate } from '@/lib/format';
 import { useQueryClient } from '@tanstack/react-query';
 import { useIsWide } from '@/lib/useLayout';
 import { useTitle } from '@/lib/useTitle';
 import { colors, fonts, shadowStyle } from '@/theme';
 
-/** Professor Wise's face for each point on the scale. */
-const FACES: Record<number, HeadMood> = { 1: 'tired', 2: 'squint', 3: 'neutral', 4: 'grin', 5: 'laugh' };
 const stages = () => [tr('Rate', 'Rating'), tr('Comment', 'Komento'), tr('Review', 'Suriin'), tr('Done', 'Tapos')];
 
 export interface EvaluationFormData {
@@ -67,7 +67,9 @@ export function EvaluationFlow({
   submitError: unknown;
   onSubmit: (answers: EvaluationAnswers, onSuccess: () => void) => void;
 }) {
-  const id = draftKey;
+  const insets = useSafeAreaInsets();
+  const accountId = useAuth((state) => state.user?.id ?? 0);
+  const id = scopedDraftId(draftKey, accountId, data?.period?.id);
   const router = useRouter();
   const wide = useIsWide();
   const form = { data };
@@ -76,6 +78,8 @@ export function EvaluationFlow({
 
   // step 0..n-1 = rating questions, n = comments, n+1 = review
   const [step, setStep] = useState(0);
+  const scroll = useRef<ScrollView>(null);
+  useEffect(() => { scroll.current?.scrollTo({ y: 0, animated: false }); }, [step]);
   const [ratings, setRatings] = useState<Record<number, number>>({});
   const [texts, setTexts] = useState<Record<number, string>>({});
   const [comment, setComment] = useState('');
@@ -87,24 +91,42 @@ export function EvaluationFlow({
   const [offer, setOffer] = useState<Draft | null>(null);
   const [draftChecked, setDraftChecked] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const draftWrite = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     if (!form.data || draftChecked) return;
     setDraftChecked(true);
     if (form.data.already_submitted || !form.data.period?.is_open) return;
     getDraft(id).then((d) => {
-      if (d && (Object.keys(d.ratings).length || d.comment)) setOffer(d);
+      if (d && (Object.keys(d.ratings).length || d.comment || Object.values(d.texts ?? {}).some((value) => value.trim()))) setOffer(d);
     });
   }, [form.data, draftChecked, id]);
 
   const answered = Object.keys(ratings).length > 0 || comment.trim() !== '' || Object.values(texts).some((t) => t.trim());
+  const persist = () => {
+    setSaveState('saving');
+    const write = draftWrite.current.catch(() => {}).then(() => saveDraft(id, { step, ratings, texts, comment }));
+    draftWrite.current = write;
+    return write;
+  };
   useEffect(() => {
     if (!draftChecked || offer || done || !answered) return;
-    const t = setTimeout(() => {
-      saveDraft(id, { step, ratings, texts, comment }).then(() => setSavedAt(Date.now()));
+    let active = true;
+    setSaveState('saving');
+    const timer = setTimeout(() => {
+      persist().then(() => { if (active) { setSavedAt(Date.now()); setSaveState('saved'); } })
+        .catch(() => { if (active) setSaveState('error'); });
     }, 500);
-    return () => clearTimeout(t);
+    return () => { active = false; clearTimeout(timer); };
   }, [ratings, texts, comment, step, draftChecked, offer, done, answered, id]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !answered || done || saveState === 'saved') return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [answered, done, saveState]);
 
   const ratingQs: Question[] = form.data?.questions.filter((q) => q.type === 'rating') ?? [];
   const textQs: Question[] = form.data?.questions.filter((q) => q.type === 'text') ?? [];
@@ -158,7 +180,12 @@ export function EvaluationFlow({
   });
 
   const goHome = () => router.replace(homeHref as Href);
-  const back = () => (router.canGoBack() ? router.back() : goHome());
+  const saveAndExit = async () => {
+    if (!answered) { goHome(); return; }
+    try { await persist(); setSaveState('saved'); await qc.invalidateQueries({ queryKey: ['drafts'] }); goHome(); }
+    catch { setSaveState('error'); }
+  };
+  const back = () => (answered && !done ? void saveAndExit() : router.canGoBack() ? router.back() : goHome());
 
   if (!form.data) return <ScreenState loading={loading} error={error} onRetry={onRetry} />;
 
@@ -179,19 +206,19 @@ export function EvaluationFlow({
       },
       () => {
         tap(30);
-        clearDraft(id);
-        qc.invalidateQueries({ queryKey: ['drafts'] });
+        draftWrite.current.catch(() => {}).then(() => clearDraft(id)).then(() => qc.invalidateQueries({ queryKey: ['drafts'] }));
         setDone(true);
         toast({ title: tr('Evaluation sent', 'Naipadala ang evaluation'), body: tr(`${teacher.name} will only see combined, anonymous results.`, ` Pinagsama-sama at anonymous na resulta lang ang makikita ni ${teacher.name}.`), tone: 'success', mood: 'proud' });
       }
     );
   };
 
-  const blocked = already_submitted ? tr('You already evaluated this teacher for this period.', 'Na-evaluate mo na ang gurong ito ngayong period.') : !period?.is_open ? tr('The evaluation period is closed right now.', 'Sarado ang evaluation ngayon.') : null;
+  const blocked = already_submitted ? tr('You already evaluated this teacher for this period.', 'Na-evaluate mo na ang gurong ito ngayong period.') : !period?.is_open ? period && new Date(period.opens_at).getTime() > Date.now() ? tr(`This evaluation opens ${shortDate(period.opens_at)}.`, `Magbubukas ang evaluation sa ${shortDate(period.opens_at)}.`) : tr('The evaluation period is closed right now.', 'Sarado ang evaluation ngayon.') : null;
   const stage = done ? 3 : step === reviewStep ? 2 : step === commentStep ? 1 : 0;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: wide ? 40 : 20, paddingBottom: 40, gap: 18, width: '100%', maxWidth: 820, alignSelf: 'center', flexGrow: 1 }}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <ScrollView style={{ flex: 1 }} ref={scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: wide ? 32 : 20, paddingBottom: 24, gap: 18, width: '100%', maxWidth: 860, alignSelf: 'center', flexGrow: 1 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <Pressable
           accessibilityRole="button"
@@ -201,10 +228,12 @@ export function EvaluationFlow({
         >
           <Icon name="arrowLeft" size={20} strokeWidth={2} />
         </Pressable>
-        <Txt weight="semibold" size={22} accessibilityRole="header">{tr('Evaluate', 'Mag-evaluate')}</Txt>
+        <Txt weight="semibold" size={22} accessibilityRole="header" style={{ flex: 1 }}>{step === reviewStep ? tr('Review', 'Suriin') : tr('Evaluate', 'Mag-evaluate')}</Txt>
+        {!done && !blocked && !offer && <Pressable accessibilityRole="button" onPress={() => void saveAndExit()} disabled={saveState === 'saving'} style={{ minHeight: 44, maxWidth: '40%', justifyContent: 'center' }}><Txt weight="medium" size={14} color={colors.accent}>{tr('Save & exit', 'I-save at lumabas')}</Txt></Pressable>}
       </View>
 
-      <View style={{ backgroundColor: colors.frame, borderRadius: 24, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><Icon name="shield" size={15} color={colors.brand} /><Txt size={12} color={colors.textSoft}>{tr('Anonymous feedback', 'Anonymous na feedback')}</Txt></View>
+      <View style={{ backgroundColor: colors.frame, borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
         <Avatar name={teacher.name} initials={teacher.initials} size={52} />
         <View style={{ flex: 1 }}>
           <Txt weight="semibold" size={18} color="#FFFFFF">{teacher.name}</Txt>
@@ -212,7 +241,7 @@ export function EvaluationFlow({
         </View>
       </View>
 
-      {!blocked && <Stepper current={stage} />}
+      {!blocked && wide && <Stepper current={stage} />}
 
       {done ? (
         <FadeIn style={{ flex: 1 }}>
@@ -280,20 +309,15 @@ export function EvaluationFlow({
               <Txt size={14} color={colors.muted}>{step < n ? current?.category ?? '' : step === commentStep ? tr('Comments', 'Komento') : tr('Review', 'Suriin')}</Txt>
             </View>
             <ProgressBar value={Math.min(1, (step + 1) / (n + 2))} height={8} />
-            {savedAt && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-end' }}>
-                <Icon name="checkCircle" size={13} color={colors.successFg} strokeWidth={2.2} />
-                <Txt size={12} color={colors.successFg}>{tr('Draft saved on this device', 'Naka-save ang draft sa device na ito')}</Txt>
-              </View>
-            )}
+
           </View>
 
           <FadeIn key={step} distance={16}>
-            <View style={[{ backgroundColor: colors.card, borderRadius: 28, paddingVertical: 22, paddingHorizontal: wide ? 24 : 16, gap: 14 }, shadowStyle('soft')]}>
+            <View style={{ borderRadius: 16, borderWidth: wide ? 1 : 0, borderColor: colors.borderSoft, paddingVertical: wide ? 24 : 6, paddingHorizontal: wide ? 24 : 0, gap: 18, backgroundColor: wide ? colors.card : colors.surface }}>
               {step < n && current ? (
                 <>
                   <Reaction value={ratings[current.id] ?? null} wide={wide} />
-                  <Txt weight="semibold" size={wide ? 22 : 20} style={{ lineHeight: wide ? 30 : 27, marginHorizontal: 4 }} accessibilityRole="header">
+                  <Txt weight="semibold" size={wide ? 24 : 21} style={{ lineHeight: wide ? 30 : 27, marginHorizontal: 4 }} accessibilityRole="header">
                     {current.text}
                   </Txt>
                   <RatingCards scale={scale} value={ratings[current.id]} onPick={pick} wide={wide} />
@@ -334,80 +358,47 @@ export function EvaluationFlow({
           {step < n && current && ratings[current.id] === undefined && (
             <Txt size={13} color={colors.muted} style={{ textAlign: 'center', marginBottom: -4 }}>{tr('Pick a rating to continue.', 'Pumili ng rating para magpatuloy.')}</Txt>
           )}
-          <View style={{ flexDirection: 'row', gap: 12 }}>
+          {step === reviewStep && <View style={{ padding: 14, borderRadius: 12, backgroundColor: colors.brandSoft, flexDirection: 'row', gap: 8 }}><Icon name="shield" size={18} color={colors.brand} /><Txt size={14} style={{ flex: 1, lineHeight: 20 }}>{tr('Your identity will not be shown to your teacher. Submitted evaluations cannot be changed.', 'Hindi makikita ng guro ang pangalan mo. Hindi na mababago ang naipasang evaluation.')}</Txt></View>}
+
+        </>
+      )}
+    </ScrollView>
+    {!done && !blocked && !offer && <View testID="evaluation-actions" style={{ backgroundColor: colors.card, borderTopWidth: 1, borderColor: colors.borderSoft, paddingHorizontal: wide ? 28 : 20, paddingTop: 10, paddingBottom: Math.max(12, insets.bottom), width: '100%' }}>
+      <View style={{ width: '100%', maxWidth: 796, alignSelf: 'center', gap: 8 }}>
+        <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+          <Icon name={saveState === 'error' ? 'info' : 'checkCircle'} size={14} color={saveState === 'error' ? colors.danger : colors.muted} />
+          <Txt size={12} color={saveState === 'error' ? colors.danger : colors.muted} style={{ flex: 1 }}>{saveState === 'error' ? tr('Could not save on this device. Keep this screen open.', 'Hindi na-save sa device. Panatilihing bukas ang screen.') : saveState === 'saving' ? tr('Saving draft…', 'Sine-save ang draft…') : savedAt || saveState === 'saved' ? tr('Draft saved on this device', 'Naka-save ang draft sa device na ito') : tr('Your draft saves as you go.', 'Awtomatikong sine-save ang draft habang sumasagot.')}</Txt>
+          {saveState === 'error' && <Pressable accessibilityRole="button" onPress={() => persist().then(() => { setSavedAt(Date.now()); setSaveState('saved'); }).catch(() => setSaveState('error'))} style={{ minHeight: 44, justifyContent: 'center' }}><Txt weight="semibold" size={13} color={colors.accent}>{tr('Retry save', 'I-save ulit')}</Txt></Pressable>}
+        </View>
+          <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
             <Button title={tr('Previous', 'Nakaraan')} variant="outline" size="lg" disabled={step === 0} onPress={() => goTo(Math.max(0, step - 1))} style={{ flex: 1 }} />
             {step < n ? (
               <Button title={editingFromReview ? tr('Back to review', 'Bumalik sa pagsusuri') : tr('Next', 'Susunod')} size="lg" disabled={!current || ratings[current.id] === undefined} onPress={next} style={{ flex: 1.4 }} />
             ) : step === commentStep ? (
               <Button title={tr('Review answers', 'Suriin ang sagot')} size="lg" disabled={!allRated} onPress={() => goTo(reviewStep)} style={{ flex: 1.4 }} />
             ) : (
-              <Button title={tr('Submit evaluation', 'Ipasa ang evaluation')} size="lg" disabled={!allRated} loading={submitting} onPress={send} style={{ flex: 1.4 }} />
+              <Button title={tr('Submit anonymously', 'Ipasa nang anonymous')} size="lg" disabled={!allRated} loading={submitting} onPress={send} style={{ flex: 1.4 }} />
             )}
           </View>
-        </>
-      )}
-    </ScrollView>
+      </View>
+    </View>}
+    </KeyboardAvoidingView>
   );
 }
 
-/** Each point on the scale has its own colour, from warm (1) to green (5), so the choice reads at a glance. */
-const rateColors = (n: number) => {
-  const k = Math.max(1, Math.min(5, Math.round(n))) as 1 | 2 | 3 | 4 | 5;
-  return { tint: colors[`rate${k}Bg`], strong: colors[`rate${k}`] };
-};
-
-/**
- * Five big cards, each with Professor Wise's face for that rating, tinted from warm to green.
- * The picked card fills with its colour and his face pops. A row on computers, a list on phones.
- */
+/** Neutral choices keep every rating equally prominent. */
 function RatingCards({ scale, value, onPick, wide }: { scale: Record<string, string>; value?: number; onPick: (n: number) => void; wide: boolean }) {
   const entries = Object.entries(scale).map(([v, label]) => ({ n: Number(v), label }));
   return (
-    <View accessibilityRole="radiogroup" style={{ flexDirection: wide ? 'row' : 'column', gap: wide ? 12 : 10 }}>
+    <View accessibilityRole="radiogroup" accessibilityLabel={tr('Choose a rating', 'Pumili ng rating')} style={{ gap: 10 }}>
       {entries.map(({ n, label }) => {
-        const on = value === n;
-        const dim = value !== undefined && !on;
-        const c = rateColors(n);
-        return (
-          <Pressable
-            key={n}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: on }}
-            accessibilityLabel={`${n}, ${label}`}
-            onPress={() => onPick(n)}
-            style={({ hovered, pressed }: { hovered?: boolean; pressed?: boolean }) => [
-              {
-                borderRadius: 24,
-                borderWidth: 2,
-                borderColor: on ? c.strong : hovered ? c.strong : colors.borderSoft,
-                backgroundColor: on ? c.strong : colors.card,
-                opacity: dim && !hovered ? 0.72 : 1,
-                transform: [{ scale: pressed ? 0.96 : on ? 1.04 : hovered ? 1.02 : 1 }],
-              },
-              on ? shadowStyle('lift') : null,
-              wide
-                ? { flex: 1, minHeight: 176, alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 16, paddingHorizontal: 6 }
-                : { minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 12 },
-            ]}
-          >
-            <View style={{ width: wide ? 92 : 54, height: wide ? 82 : 50, borderRadius: wide ? 22 : 16, backgroundColor: on ? '#FFFFFF' : c.tint, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              <WiseHead key={on ? 'on' : 'off'} size={wide ? 68 : 40} mood={FACES[n] ?? 'neutral'} pop={on} />
-            </View>
-            {wide ? (
-              <>
-                <Txt weight="bold" size={24} color={on ? '#FFFFFF' : c.strong}>{String(n)}</Txt>
-                <Txt weight="semibold" size={15} color={on ? '#FFFFFF' : colors.textSoft} style={{ textAlign: 'center' }}>{label}</Txt>
-              </>
-            ) : (
-              <>
-                <Txt weight="semibold" size={17} color={on ? '#FFFFFF' : colors.text} style={{ flex: 1 }}>{label}</Txt>
-                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: on ? '#FFFFFF' : c.tint, alignItems: 'center', justifyContent: 'center' }}>
-                  {on ? <Icon name="check" size={18} color={c.strong} strokeWidth={3} /> : <Txt weight="bold" size={15} color={c.strong}>{String(n)}</Txt>}
-                </View>
-              </>
-            )}
-          </Pressable>
-        );
+        const selected = value === n;
+        return <Pressable key={n} accessibilityRole="radio" accessibilityState={{ checked: selected }} aria-checked={selected} accessibilityLabel={`${n}, ${label}`} onPress={() => onPick(n)}
+          style={({ hovered, pressed }: { hovered?: boolean; pressed?: boolean }) => ({ minHeight: wide ? 54 : 48, borderRadius: 12, borderWidth: 1.5, borderColor: selected ? colors.navy : hovered ? colors.brand : colors.border, backgroundColor: selected ? colors.brandSoft : colors.card, flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 10, paddingHorizontal: 16, opacity: pressed ? 0.85 : 1 })}>
+          <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: selected ? colors.navy : colors.muted, alignItems: 'center', justifyContent: 'center' }}>{selected && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.navy }} />}</View>
+          <Txt weight="semibold" size={16}>{String(n)}</Txt>
+          <Txt weight={selected ? 'semibold' : 'regular'} size={16} style={{ flex: 1 }}>{label}</Txt>
+        </Pressable>;
       })}
     </View>
   );
@@ -431,16 +422,10 @@ function Review({
   onEdit: (i: number) => void;
   onEditComments: () => void;
 }) {
-  const values = questions.map((q) => ratings[q.id]).filter((v): v is number => v !== undefined);
-  const avg = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
   return (
-    <View style={{ gap: 14 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10 }}>
-        <WiseMascot size={wide ? 104 : 84} mood="writing" float={false} shadow={false} />
-        <View style={{ flex: 1, marginBottom: 10, backgroundColor: colors.brandSoft, borderRadius: 18, borderBottomLeftRadius: 6, paddingVertical: 11, paddingHorizontal: 14 }}>
-          <RichText text={tr(`Here’s what you’ll send. Your average is **${avg.toFixed(1)} / 5**. Tap any answer to change it.`, `Ito ang ipapasa mo. Ang average mo ay **${avg.toFixed(1)} / 5**. Pindutin ang sagot para palitan.`)} size={wide ? 15 : 14} boldColor={colors.accent} style={{ lineHeight: 20 }} />
-        </View>
-      </View>
+    <View style={{ gap: 16 }}>
+      <Txt weight="semibold" size={22} accessibilityRole="header">{tr('Review your answers', 'Suriin ang mga sagot mo')}</Txt>
+      <Txt size={14} color={colors.textSoft}>{tr('Check your answers before submitting.', 'Suriin ang mga sagot bago ipasa.')}</Txt>
       <View style={{ gap: 8 }}>
         {questions.map((q, i) => {
           const v = ratings[q.id];
@@ -454,13 +439,11 @@ function Review({
             >
               <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                 {q.category ? <Txt weight="semibold" size={13} color={colors.muted}>{q.category}</Txt> : null}
-                <Txt size={15} numberOfLines={2} style={{ lineHeight: 20 }}>{q.text}</Txt>
+                <Txt size={15} style={{ lineHeight: 20 }}>{q.text}</Txt>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 6, paddingRight: 12, height: 42, borderRadius: 999, backgroundColor: colors.chip }}>
-                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                  <WiseHead size={22} mood={FACES[v] ?? 'neutral'} />
-                </View>
-                <Txt weight="semibold" size={14} color={colors.accent}>{v ? (wide ? `${v} · ${scale[String(v)]}` : String(v)) : '–'}</Txt>
+              <View style={{ alignItems: 'flex-end', gap: 4, maxWidth: '42%' }}>
+                <Txt weight="medium" size={14} color={colors.accent}>{v ? `${v} · ${scale[String(v)]}` : '–'}</Txt>
+                <Txt weight="medium" size={13} color={colors.brandText}>{tr('Edit', 'Palitan')}</Txt>
               </View>
             </Pressable>
           );
@@ -484,29 +467,14 @@ function Review({
   );
 }
 
-const reactions = (): Record<string, { mood: Mood; line: string }> => ({
-  none: { mood: 'think', line: tr('Take your time. Pick what really happened in class.', 'Dahan-dahan lang. Piliin ang totoong nangyari sa klase.') },
-  1: { mood: 'sad', line: tr('Thanks for being honest. That helps the most.', 'Salamat sa pagiging tapat. Iyan ang pinakamakakatulong.') },
-  2: { mood: 'worried', line: tr('Got it, something to work on.', 'Sige, may dapat pang ayusin.') },
-  3: { mood: 'think', line: tr('Okay, somewhere in the middle.', 'Okay, nasa gitna.') },
-  4: { mood: 'proud', line: tr('Nice! That’s good to hear.', 'Ayos! Masarap pakinggan iyan.') },
-  5: { mood: 'cheer', line: tr('Excellent! Your teacher will be glad to know.', 'Napakahusay! Matutuwa ang guro mo.') },
-  comment: { mood: 'writing', line: tr('Any comments? It’s optional and still anonymous.', 'May komento ka ba? Opsyonal ito at anonymous pa rin.') },
-});
-
-/** Professor Wise reacting to the rating the student just picked. */
+/** A consistent, neutral guide regardless of the selected answer. */
 function Reaction({ value, wide }: { value: number | 'comment' | null; wide: boolean }) {
-  const r = reactions()[value === null ? 'none' : String(value)];
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10 }} accessibilityLiveRegion="polite">
-      <WiseMascot size={wide ? 104 : 84} mood={r.mood} float={false} shadow={false} />
-      <FadeIn key={r.line} distance={6} style={{ flex: 1, marginBottom: 10 }}>
-        <View style={{ backgroundColor: colors.brandSoft, borderRadius: 18, borderBottomLeftRadius: 6, paddingVertical: 11, paddingHorizontal: 14 }}>
-          <RichText text={r.line} size={wide ? 15 : 14} boldColor={colors.accent} style={{ lineHeight: wide ? 21 : 19 }} />
-        </View>
-      </FadeIn>
+  return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+    <WiseMascot size={wide ? 78 : 66} mood="happy" float={false} shadow={false} />
+    <View style={{ flex: 1, backgroundColor: colors.brandSoft, borderRadius: 16, padding: 14 }}>
+      <Txt size={14} style={{ lineHeight: 21 }}>{value === 'comment' ? tr('Comments are optional and anonymous.', 'Opsyonal at anonymous ang komento.') : tr('Choose the answer that reflects your experience.', 'Piliin ang sagot na ayon sa karanasan mo.')}</Txt>
     </View>
-  );
+  </View>;
 }
 
 function LabeledInput({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {

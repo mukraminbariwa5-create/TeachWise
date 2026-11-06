@@ -10,8 +10,9 @@ It talks to the Laravel API in `../backend`.
   download my data, delete account, English and Filipino, light and dark mode, works offline.
 - **Students:** dashboard with a guided tour, one-question-at-a-time evaluation with drafts, history, badges.
 - **Teachers:** rating trend, criteria with focus area, anonymous comments, peer evaluation, printable report.
-- **Admins:** overview with completion and reminders, users, classes & sections, evaluation periods and
-  questions (EN/FIL), approved IDs (paste from a spreadsheet), password requests and inbox, reports + CSV, activity log.
+- **School admins:** school structure, administrator accounts, shared questionnaires and evaluation calendar, reports and activity.
+- **Department deans:** department teachers/students, approved IDs, subjects, sections, class assignments, account requests and read-only reports.
+- **Navigation:** a permanent compact rail on tablets/desktops; bottom tabs and Account on student/teacher phones; an additional left-side drawer on school-admin/dean phones.
 - **Professor Wise** on every page: tips, a chat, and reactions while you work.
 - Push notifications on phones, installable web app, crash reports, "What's new" and update prompts.
 

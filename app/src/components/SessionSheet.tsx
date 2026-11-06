@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Modal, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '@/api/client';
 import { useAuth } from '@/auth/store';
 import { tr } from '@/lib/i18n';
+import { useReducedMotion } from '@/lib/useReducedMotion';
 import { colors, shadowStyle } from '@/theme';
 import { Button } from './Button';
 import { PasswordField } from './form/Field';
@@ -15,6 +16,7 @@ import { WiseMascot } from './WiseMascot';
  * again over the current page, so nothing is lost. "Use another account" signs out instead.
  */
 export function SessionSheet() {
+  const reduced = useReducedMotion();
   const { user, expired, login, logout } = useAuth();
   const qc = useQueryClient();
   const [password, setPassword] = useState('');
@@ -45,11 +47,12 @@ export function SessionSheet() {
   };
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={() => {}}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(5,5,40,0.55)', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-        <View style={[{ width: '100%', maxWidth: 420, backgroundColor: colors.card, borderRadius: 28, padding: 22, gap: 14 }, shadowStyle('lift')]}>
-          <View style={{ alignItems: 'center', marginTop: -70 }}>
-            <WiseMascot size={120} mood="please" />
+    <Modal visible transparent animationType={reduced ? 'none' : 'fade'} onRequestClose={() => {}}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: 'rgba(5,5,40,0.55)', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <View style={[{ width: '100%', maxWidth: 440, maxHeight: '90%', backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.borderSoft, padding: 22, gap: 14 }, shadowStyle('lift')]}>
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 14 }}>
+          <View style={{ alignItems: 'center' }}>
+            <WiseMascot size={80} mood="please" />
           </View>
           <Txt weight="bold" size={21} style={{ textAlign: 'center' }} accessibilityRole="header">{tr(`Still there, ${first}?`, `Nandiyan ka pa ba, ${first}?`)}</Txt>
           <Txt size={15} color={colors.textSoft} style={{ textAlign: 'center', lineHeight: 22 }}>
@@ -58,8 +61,9 @@ export function SessionSheet() {
           <PasswordField label={tr('Password', 'Password')} value={password} onChangeText={setPassword} autoFocus onSubmitEditing={submit} returnKeyType="go" state={error ? 'invalid' : 'idle'} message={error ?? undefined} shake={shake} />
           <Button title={tr('Continue', 'Magpatuloy')} size="lg" onPress={submit} loading={busy} />
           <Button title={tr('Use another account', 'Ibang account')} variant="outline" onPress={logout} />
+          </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

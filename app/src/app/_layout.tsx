@@ -19,10 +19,11 @@ import { useOnlineListeners } from '@/lib/online';
 import { onNotificationTap } from '@/lib/push';
 import { setupPwa } from '@/lib/pwa';
 import { queryClient } from '@/lib/queryClient';
-import { persistQueryCache, restoreQueryCache } from '@/lib/queryPersist';
+import { accountQueryScope, persistQueryCache, restoreQueryCache } from '@/lib/queryPersist';
 import { installGlobalErrorHandlers } from '@/lib/reportError';
-import { ThemeProvider } from '@/lib/theme';
+import { ThemeProvider, useTheme } from '@/lib/theme';
 import { colors } from '@/theme';
+import { UiScaleProvider } from '@/lib/uiScale';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 installGlobalErrorHandlers();
@@ -41,10 +42,19 @@ export default function RootLayout() {
   useOnlineListeners();
 
   useEffect(() => {
-    restoreQueryCache(queryClient).finally(() => setCacheReady(true));
-    hydrate();
+    let active = true;
+    let stopPersistence = () => {};
+    const scope = () => accountQueryScope(useAuth.getState().user, useAuth.getState().school?.id ?? null);
+    void (async () => {
+      await hydrate();
+      if (!active) return;
+      await restoreQueryCache(queryClient, scope());
+      if (!active) return;
+      stopPersistence = persistQueryCache(queryClient, scope);
+      setCacheReady(true);
+    })();
     preloadStickers();
-    return persistQueryCache(queryClient);
+    return () => { active = false; stopPersistence(); };
   }, [hydrate]);
 
   // Server texts (Professor Wise, questions, messages) come back in the new language.
@@ -62,7 +72,8 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <StatusBar style="light" />
+          <UiScaleProvider>
+          <ThemedStatusBar />
           {ready ? (
             <ErrorBoundary>
               <Slot />
@@ -77,6 +88,7 @@ export default function RootLayout() {
           ) : (
             <View style={{ flex: 1, backgroundColor: colors.frame }} />
           )}
+          </UiScaleProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
@@ -84,6 +96,11 @@ export default function RootLayout() {
 }
 
 /** Tapping a push notification opens the right home screen. */
+function ThemedStatusBar() {
+  const { mode } = useTheme();
+  return <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />;
+}
+
 function NotificationTaps() {
   const router = useRouter();
   useEffect(

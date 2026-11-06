@@ -63,10 +63,11 @@ const RENEW_WITHIN_MS = 7 * 24 * 3600 * 1000;
 /** Loads the user, their school and settings; renews the token when it expires within a week. */
 async function loadMe(token: string): Promise<User> {
   const me = await api<MeResponse>('/auth/me', { token });
+  if (await getToken() !== token) return me.user;
   useSettings.getState().set(me.settings ?? DEFAULT_SETTINGS);
-  useAuth.setState({ school: me.school ?? null });
-  setPref('user', JSON.stringify(me.user));
-  setPref('userSchool', me.school ? JSON.stringify(me.school) : '');
+  useAuth.setState({ user: me.user, school: me.school ?? null });
+  await setPref('user', JSON.stringify(me.user));
+  await setPref('userSchool', me.school ? JSON.stringify(me.school) : '');
   registerPushToken().catch(() => {});
   if (me.token_expires_at && new Date(me.token_expires_at).getTime() - Date.now() < RENEW_WITHIN_MS) {
     try {
@@ -85,6 +86,13 @@ function signedIn(set: (p: Partial<AuthState>) => void, user: User, school: Scho
   if (school) usePickedSchool.getState().pick({ id: school.id, name: school.name, short_name: school.short_name, code: school.code, location: school.location, logo_url: school.logo_url });
 }
 
+async function clearAccountData() {
+  await queryClient.cancelQueries();
+  queryClient.clear();
+  await clearQueryCache();
+  useSettings.getState().set(DEFAULT_SETTINGS);
+}
+
 export const useAuth = create<AuthState>((set) => ({
   user: null,
   school: null,
@@ -94,7 +102,8 @@ export const useAuth = create<AuthState>((set) => ({
   hydrate: async () => {
     const token = await getToken();
     if (!token) {
-      set({ status: 'signedOut' });
+      await clearAccountData();
+      set({ user: null, school: null, status: 'signedOut' });
       return;
     }
     try {
@@ -103,17 +112,21 @@ export const useAuth = create<AuthState>((set) => ({
     } catch (e) {
       // Offline at launch: open with the last known account; pages show saved data until the connection returns.
       if ((e as { status?: number })?.status === 0) {
-        const cached = await getPref('user');
-        if (cached) {
-          const school = await getPref('userSchool');
-          set({ user: JSON.parse(cached) as User, school: school ? (JSON.parse(school) as SchoolInfo) : null, status: 'signedIn' });
-          return;
-        }
+        try {
+          const cached = await getPref('user');
+          if (cached) {
+            const school = await getPref('userSchool');
+            set({ user: JSON.parse(cached) as User, school: school ? (JSON.parse(school) as SchoolInfo) : null, status: 'signedIn' });
+            return;
+          }
+        } catch { /* A damaged offline account copy cannot restore a session. */ }
+        await clearAccountData();
         set({ status: 'signedOut' });
         return;
       }
       await clearToken();
-      set({ user: null, status: 'signedOut' });
+      await clearAccountData();
+      set({ user: null, school: null, status: 'signedOut' });
     }
   },
 
@@ -123,6 +136,7 @@ export const useAuth = create<AuthState>((set) => ({
       body: { login, password, remember, device_name: deviceName(), school_id: schoolId ?? undefined },
       token: null,
     });
+    await clearAccountData();
     await setToken(token, remember);
     await setPref('remember', remember ? '1' : '0');
     signedIn(set, user, school);
@@ -136,6 +150,7 @@ export const useAuth = create<AuthState>((set) => ({
       body: { ...data, device_name: deviceName() },
       token: null,
     });
+    await clearAccountData();
     await setToken(token);
     await setPref('remember', '1');
     signedIn(set, user, school);
@@ -149,6 +164,7 @@ export const useAuth = create<AuthState>((set) => ({
       body: { ...data, device_name: deviceName() },
       token: null,
     });
+    await clearAccountData();
     await setToken(token);
     await setPref('remember', '1');
     signedIn(set, user, school);

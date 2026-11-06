@@ -13,7 +13,7 @@ use Illuminate\Database\Seeder;
  * Demo data for the sign-up screen (safe to run on an existing database):
  * - more sections, so the section picker has something to search and group;
  * - names and sections on the free demo IDs, so "Create account" can fill them in;
- * - two first-year IDs without details, to show the manual path.
+ * - two first-year IDs without details, to show the pending school-record state.
  */
 class SignupDetailsSeeder extends Seeder
 {

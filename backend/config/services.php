@@ -40,8 +40,9 @@ return [
     'ollama' => [
         'enabled' => env('OLLAMA_ENABLED', false),
         'endpoint' => env('OLLAMA_ENDPOINT', 'http://127.0.0.1:11434'),
-        'model' => env('OLLAMA_MODEL', 'llama3.2'),
-        'timeout' => (int) env('OLLAMA_TIMEOUT', 60),
+        'model' => env('OLLAMA_MODEL', 'gemma3:4b'),
+        'timeout' => (int) env('OLLAMA_TIMEOUT', 120),
+        'max_tokens' => (int) env('OLLAMA_MAX_TOKENS', 700),
     ],
 
     // Push notifications to phones through Expo's free push service.

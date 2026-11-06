@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { ApiError } from '@/api/client';
+import type { User } from '@/api/types';
 import { useChangePassword, useRevokeSession, useSessions, useUpdateProfile } from '@/api/hooks';
 import { useAuth } from '@/auth/store';
 import { Avatar } from '@/components/Avatar';
@@ -28,7 +29,7 @@ const ago = (iso: string | null) => {
 /** Your account: who you are, contact details for recovery, password and signed-in devices. */
 export default function ProfileScreen() {
   const wide = useIsWide();
-  const { user, setUser } = useAuth();
+  const { user, school, setUser } = useAuth();
   const scrollHide = useScrollHide();
   const sessions = useSessions();
   const revoke = useRevokeSession();
@@ -40,29 +41,33 @@ export default function ProfileScreen() {
   }, []);
 
   if (!user) return null;
-  const meta = [user.id_number, user.section?.label ?? user.department].filter(Boolean).join(' · ');
+  const schoolAdmin = user.role === 'admin' && user.admin_scope === 'school';
+  const meta = [user.id_number, schoolAdmin ? tr('School administrator', 'Admin ng paaralan') : user.section?.label ?? user.department].filter(Boolean).join(' · ');
   const others = (sessions.data?.data ?? []).filter((s) => !s.current).length;
 
   return (
     <Screen title={tr('Profile', 'Profile')} subtitle={wide ? tr('Your account details and security', 'Mga detalye at seguridad ng account mo') : undefined} {...scrollHide}>
-      <View style={{ backgroundColor: colors.frame, borderRadius: 30, padding: wide ? 26 : 20, paddingRight: wide ? 170 : 112, flexDirection: 'row', alignItems: 'center', gap: 18, marginTop: 24, minHeight: wide ? 140 : 120 }}>
-        <View style={{ borderWidth: 3, borderColor: 'rgba(255,255,255,0.9)', borderRadius: 999 }}>
-          <Avatar name={user.name} initials={user.initials} size={wide ? 76 : 62} />
+      <View testID="profile-identity" style={{ backgroundColor: colors.frame, borderRadius: 30, padding: wide ? 26 : 20, paddingRight: wide ? 170 : 20, flexDirection: wide ? 'row' : 'column', alignItems: wide ? 'center' : 'stretch', gap: wide ? 18 : 12, marginTop: 24, minHeight: wide ? 140 : 120 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ borderWidth: 3, borderColor: 'rgba(255,255,255,0.9)', borderRadius: 999 }}>
+            <Avatar name={user.name} initials={user.initials} size={wide ? 76 : 62} />
+          </View>
+          {!wide && <View testID="profile-mascot"><WiseMascot size={112} mood="hello" float={false} shadow={false} /></View>}
         </View>
-        <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
-          <Txt weight="bold" size={wide ? 24 : 20} color="#FFFFFF" numberOfLines={1}>{user.name}</Txt>
+        <View style={{ flex: wide ? 1 : undefined, gap: 2, minWidth: 0 }}>
+          <Txt weight="bold" size={wide ? 24 : 20} color="#FFFFFF" numberOfLines={wide && !schoolAdmin ? 1 : undefined}>{user.name}</Txt>
           <Txt size={wide ? 15 : 14} color={colors.onFrameMuted}>{meta}</Txt>
           <Txt size={wide ? 15 : 14} color={colors.onFrameMuted}>{`@${user.username}`}</Txt>
         </View>
-        <View pointerEvents="none" style={{ position: 'absolute', right: wide ? 18 : 6, bottom: 0 }}>
-          <WiseMascot size={wide ? 168 : 124} mood="hello" shadow={false} />
-        </View>
+        {wide && <View testID="profile-mascot" pointerEvents="none" style={{ position: 'absolute', right: 18, bottom: 0 }}>
+          <WiseMascot size={168} mood="hello" shadow={false} />
+        </View>}
       </View>
 
-      <Section title={tr('Details', 'Mga detalye')} footer={tr('Your name, ID and section come from your school’s records. Ask the admin if something is wrong.', 'Galing sa records ng paaralan ang pangalan, ID at section mo. Sabihan ang admin kung may mali.')}>
-        <ListRow icon="user" title={tr('Name', 'Pangalan')} value={user.name} />
+      <Section title={tr('Details', 'Mga detalye')} footer={schoolAdmin ? tr('This account administers the entire school. Use the school name or the authorized managing office as its display name.', 'Para sa buong paaralan ang account na ito. Gamitin ang pangalan ng paaralan o ng awtorisadong tanggapan bilang pangalan nito.') : tr('Your name, ID and section come from your school’s records. Ask the admin if something is wrong.', 'Galing sa records ng paaralan ang pangalan, ID at section mo. Sabihan ang admin kung may mali.')}>
+        {schoolAdmin ? <ListRow icon="user" title={tr('School / managing office', 'Paaralan / namamahalang tanggapan')} subtitle={user.name} onPress={() => setSheet('contact')} /> : <ListRow icon="user" title={tr('Name', 'Pangalan')} value={user.name} />}
         <ListRow icon="clipboard" title={tr('ID number', 'ID number')} value={user.id_number} />
-        {user.section ? <ListRow icon="book" title={tr('Section', 'Section')} value={user.section.label} /> : user.department ? <ListRow icon="layers" title={tr('Department', 'Departamento')} value={user.department} /> : null}
+        {schoolAdmin ? <ListRow icon="book" title={tr('School', 'Paaralan')} subtitle={school?.name ?? ''} /> : user.section ? <ListRow icon="book" title={tr('Section', 'Section')} value={user.section.label} /> : user.department ? <ListRow icon="layers" title={tr('Department', 'Departamento')} value={user.department} /> : null}
         <ListRow icon="mail" title={tr('Email', 'Email')} subtitle={tr('For account recovery', 'Para sa pag-recover ng account')} value={user.email ?? tr('Add', 'Idagdag')} onPress={() => setSheet('contact')} />
         <ListRow icon="phone" title={tr('Phone', 'Telepono')} value={user.phone_number ?? tr('Add', 'Idagdag')} onPress={() => setSheet('contact')} last />
       </Section>
@@ -116,18 +121,20 @@ export default function ProfileScreen() {
         )}
       </Section>
 
-      <ContactSheet visible={sheet === 'contact'} onClose={() => setSheet(null)} email={user.email ?? ''} phone={user.phone_number ?? ''} onSaved={(u) => setUser({ ...user, ...u })} />
+      <ContactSheet visible={sheet === 'contact'} onClose={() => setSheet(null)} accountName={schoolAdmin ? user.name : undefined} email={user.email ?? ''} phone={user.phone_number ?? ''} onSaved={setUser} />
       <PasswordSheet visible={sheet === 'password'} onClose={() => setSheet(null)} />
     </Screen>
   );
 }
 
-function ContactSheet({ visible, onClose, email, phone, onSaved }: { visible: boolean; onClose: () => void; email: string; phone: string; onSaved: (u: { email: string | null; phone_number?: string | null }) => void }) {
+function ContactSheet({ visible, onClose, accountName, email, phone, onSaved }: { visible: boolean; onClose: () => void; accountName?: string; email: string; phone: string; onSaved: (u: User) => void }) {
   const update = useUpdateProfile();
-  const [form, setForm] = useState({ email, phone });
+  const [form, setForm] = useState({ name: accountName ?? '', email, phone });
+  useEffect(() => { if (visible) setForm({ name: accountName ?? '', email, phone }); }, [visible, accountName, email, phone]);
   const err = update.error instanceof ApiError ? update.error.errors : {};
   return (
     <Sheet visible={visible} onClose={onClose} title={tr('Contact details', 'Contact details')}>
+      {accountName !== undefined && <Field label={tr('School / managing office', 'Paaralan / namamahalang tanggapan')} icon="book" value={form.name} onChangeText={(name) => setForm((f) => ({ ...f, name }))} max={255} placeholder="ICTC Database Management Office" hint={tr('This display name does not change the account’s school-wide permissions.', 'Hindi binabago ng pangalang ito ang pahintulot para sa buong paaralan.')} state={err.name ? 'invalid' : 'idle'} message={err.name?.[0]} />}
       <Field label={tr('Email', 'Email')} icon="mail" value={form.email} onChangeText={(v) => setForm((f) => ({ ...f, email: v }))} keyboardType="email-address" autoCapitalize="none" autoComplete="email" placeholder="name@school.edu" state={err.email ? 'invalid' : 'idle'} message={err.email?.[0]} hint={tr('Used only to help you get back into your account.', 'Gagamitin lang para matulungan kang makabalik sa account mo.')} />
       <Field label={tr('Phone (optional)', 'Telepono (opsyonal)')} icon="phone" value={form.phone} onChangeText={(v) => setForm((f) => ({ ...f, phone: v }))} keyboardType="phone-pad" autoComplete="tel" placeholder="0917 123 4567" state={err.phone_number ? 'invalid' : 'idle'} message={err.phone_number?.[0]} />
       <Button
@@ -136,10 +143,10 @@ function ContactSheet({ visible, onClose, email, phone, onSaved }: { visible: bo
         loading={update.isPending}
         onPress={() =>
           update.mutate(
-            { email: form.email.trim() || null, phone_number: form.phone.trim() || null },
+            { ...(accountName !== undefined ? { name: form.name.trim() } : {}), email: form.email.trim() || null, phone_number: form.phone.trim() || null },
             {
               onSuccess: (r) => {
-                onSaved({ email: r.user.email, phone_number: r.user.phone_number });
+                onSaved(r.user);
                 toast({ title: tr('Saved', 'Na-save'), tone: 'success' });
                 onClose();
               },

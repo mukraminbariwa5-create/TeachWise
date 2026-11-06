@@ -1,12 +1,14 @@
 import { Children, type ReactNode } from 'react';
-import { Modal, Pressable, RefreshControl, ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Modal, Pressable, RefreshControl, ScrollView, KeyboardAvoidingView, Platform, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useReducedMotion } from '@/lib/useReducedMotion';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { create } from 'zustand';
 import { tr } from '@/lib/i18n';
 import { tap } from '@/lib/ui';
 import { useIsWide, useLayoutSize } from '@/lib/useLayout';
 import { useTitle } from '@/lib/useTitle';
-import { colors, shadowStyle, space, text } from '@/theme';
+import { colors, radius, shadowStyle, space, text } from '@/theme';
 import { Button } from './Button';
 import { Icon, type IconName } from './Icon';
 import { FadeIn } from './Motion';
@@ -42,19 +44,21 @@ export function Screen({
   scrollEventThrottle?: number;
 }) {
   const wide = useIsWide();
+  const desktop = useLayoutSize() === 'desktop';
+  const contentWidth = desktop ? Math.min(1320, maxWidth + 240) : maxWidth;
   useTitle(title);
   return (
     <ScrollView
       onScroll={onScroll}
       scrollEventThrottle={scrollEventThrottle}
       refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.accent} /> : undefined}
-      contentContainerStyle={{ paddingHorizontal: wide ? 52 : space.lg, paddingTop: wide ? 40 : 22, paddingBottom: wide ? 120 : 32, gap: space.lg, width: '100%', maxWidth: wide ? maxWidth + 104 : undefined, alignSelf: 'center' }}
+      contentContainerStyle={{ paddingHorizontal: wide ? 32 : space.lg, paddingTop: wide ? 32 : 18, paddingBottom: wide ? 64 : 36, gap: desktop ? 24 : space.lg, width: '100%', maxWidth: wide ? contentWidth + 64 : undefined, alignSelf: 'center' }}
       keyboardShouldPersistTaps="handled"
     >
       {wide ? (
         <View style={{ gap: space.xs }}>
           {onBack && (
-            <Pressable accessibilityRole="button" onPress={onBack} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 32 }}>
+            <Pressable accessibilityRole="button" onPress={onBack} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 44 }}>
               <Icon name="arrowLeft" size={16} color={colors.accent} strokeWidth={2.2} />
               <Txt weight="semibold" size={text.body} color={colors.accent}>{tr('Back', 'Bumalik')}</Txt>
             </Pressable>
@@ -79,7 +83,7 @@ export function Section({ title, footer, children, style }: { title?: string; fo
           {title}
         </Txt>
       ) : null}
-      <View style={[{ backgroundColor: colors.card, borderRadius: 22, overflow: 'hidden' }, shadowStyle('soft')]}>{children}</View>
+      <View style={[{ backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderSoft, overflow: 'hidden' }, shadowStyle('soft')]}>{children}</View>
       {footer ? <Txt size={text.small} color={colors.muted} style={{ marginHorizontal: space.xxs, lineHeight: 18 }}>{footer}</Txt> : null}
     </View>
   );
@@ -136,6 +140,7 @@ export function ListRow({
     <Pressable
       accessibilityRole={toggle ? 'switch' : 'button'}
       accessibilityState={toggle ? { checked: toggle.value } : undefined}
+      aria-checked={toggle?.value}
       accessibilityLabel={subtitle ? `${title}. ${subtitle}` : title}
       onPress={() => {
         tap();
@@ -159,13 +164,14 @@ export function Segmented<T extends string>({ options, value, onChange, label }:
             key={o.key}
             accessibilityRole="radio"
             accessibilityState={{ checked: on }}
+            aria-checked={on}
             onPress={() => {
               if (!on) {
                 tap();
                 onChange(o.key);
               }
             }}
-            style={[{ flex: 1, minHeight: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 8 }, on ? { backgroundColor: colors.card, ...shadowStyle('soft') } : null]}
+            style={[{ flex: 1, minHeight: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 8, paddingVertical: 6 }, on ? { backgroundColor: colors.card, ...shadowStyle('soft') } : null]}
           >
             {o.icon && <Icon name={o.icon} size={16} color={on ? colors.accent : colors.muted} strokeWidth={2} />}
             <Txt weight={on ? 'semibold' : 'medium'} size={text.body} color={on ? colors.text : colors.muted}>{o.label}</Txt>
@@ -179,13 +185,16 @@ export function Segmented<T extends string>({ options, value, onChange, label }:
 /** Bottom sheet on phones, centred dialog on computers. */
 export function Sheet({ visible, onClose, title, children, maxWidth = 480 }: { visible: boolean; onClose: () => void; title?: string; children: ReactNode; maxWidth?: number }) {
   const phone = useLayoutSize() === 'phone';
+  const insets = useSafeAreaInsets();
+  const reduced = useReducedMotion();
   return (
-    <Modal visible={visible} transparent animationType={phone ? 'slide' : 'fade'} onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType={reduced ? 'none' : phone ? 'slide' : 'fade'} onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Pressable accessibilityLabel={tr('Close', 'Isara')} onPress={onClose} style={{ flex: 1, backgroundColor: 'rgba(5,5,40,0.45)', justifyContent: phone ? 'flex-end' : 'center', alignItems: 'center', padding: phone ? 0 : space.lg }}>
         <Pressable
           onPress={() => {}}
           style={[
-            { width: '100%', maxWidth: phone ? undefined : maxWidth, maxHeight: phone ? '90%' : '85%', backgroundColor: colors.card, borderRadius: 28, borderBottomLeftRadius: phone ? 0 : 28, borderBottomRightRadius: phone ? 0 : 28, padding: space.lg, gap: space.md },
+            { width: '100%', maxWidth: phone ? undefined : maxWidth, maxHeight: phone ? '90%' : '85%', backgroundColor: colors.card, borderRadius: 28, borderBottomLeftRadius: phone ? 0 : 28, borderBottomRightRadius: phone ? 0 : 28, padding: space.lg, paddingBottom: space.lg + (phone ? insets.bottom : 0), gap: space.md, borderWidth: 1, borderColor: colors.borderSoft },
             shadowStyle('lift'),
           ]}
         >
@@ -193,7 +202,7 @@ export function Sheet({ visible, onClose, title, children, maxWidth = 480 }: { v
           {title ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
               <Txt weight="bold" size={text.h3} style={{ flex: 1 }} accessibilityRole="header">{title}</Txt>
-              <Pressable accessibilityRole="button" accessibilityLabel={tr('Close', 'Isara')} onPress={onClose} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
+              <Pressable accessibilityRole="button" accessibilityLabel={tr('Close', 'Isara')} onPress={onClose} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="close" size={16} color={colors.textSoft} strokeWidth={2.2} />
               </Pressable>
             </View>
@@ -203,6 +212,7 @@ export function Sheet({ visible, onClose, title, children, maxWidth = 480 }: { v
           </ScrollView>
         </Pressable>
       </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -227,17 +237,19 @@ export function confirm(o: ConfirmOptions): Promise<boolean> {
 /** Mounted once in the root layout. */
 export function ConfirmHost() {
   const open = useConfirm((s) => s.open);
+  const reduced = useReducedMotion();
   if (!open) return null;
   const close = (v: boolean) => {
     open.resolve(v);
     useConfirm.setState({ open: null });
   };
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={() => close(false)}>
+    <Modal visible transparent animationType={reduced ? 'none' : 'fade'} onRequestClose={() => close(false)}>
       <Pressable onPress={() => close(false)} style={{ flex: 1, backgroundColor: 'rgba(5,5,40,0.5)', alignItems: 'center', justifyContent: 'center', padding: space.lg }}>
-        <Pressable onPress={() => {}} style={[{ width: '100%', maxWidth: 400, backgroundColor: colors.card, borderRadius: 26, padding: space.xl, gap: space.md, alignItems: 'center' }, shadowStyle('lift')]}>
+        <Pressable onPress={() => {}} style={[{ width: '100%', maxWidth: 440, maxHeight: '90%', backgroundColor: colors.card, borderRadius: radius.lg, padding: space.xl, gap: space.md, alignItems: 'center' }, shadowStyle('lift')]}>
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: 'center', gap: space.md }}>
           <FadeIn>
-            <WiseMascot size={96} mood={open.mood ?? (open.danger ? 'worried' : 'think')} float={false} />
+            <WiseMascot size={80} mood={open.mood ?? (open.danger ? 'worried' : 'think')} float={false} />
           </FadeIn>
           <Txt weight="bold" size={text.h3} style={{ textAlign: 'center' }} accessibilityRole="header">{open.title}</Txt>
           {open.message ? <Txt size={text.body} color={colors.textSoft} style={{ textAlign: 'center', lineHeight: 22 }}>{open.message}</Txt> : null}
@@ -245,6 +257,7 @@ export function ConfirmHost() {
             <Button title={open.cancelLabel ?? tr('Cancel', 'Kanselahin')} variant="outline" onPress={() => close(false)} style={{ flex: 1 }} />
             <Button title={open.confirmLabel ?? tr('Continue', 'Magpatuloy')} onPress={() => close(true)} style={[{ flex: 1.2 }, open.danger ? { backgroundColor: colors.danger } : null]} />
           </View>
+          </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
@@ -331,7 +344,7 @@ export function StatCard({
         </View>
       ) : null}
       {delta ? (
-        <Txt size={text.small} color={colors.muted} numberOfLines={1}>
+        <Txt size={text.small} color={colors.muted} >
           <Txt weight="bold" size={text.small} color={up ? colors.successFg : down ? colors.urgentFg : colors.muted}>{up ? `▲ ${fmt(delta.value)}` : down ? `▼ ${fmt(delta.value)}` : tr('No change', 'Walang pagbabago')}</Txt>
           {` ${delta.caption}`}
         </Txt>
@@ -347,21 +360,22 @@ export function StatCard({
  * Four across on computers, two by two on phones.
  */
 export function StatRow({ children }: { children: ReactNode }) {
+  const { width } = useWindowDimensions();
   const phone = useLayoutSize() === 'phone';
   const items = Children.toArray(children).filter(Boolean);
+  const columns = Math.min(items.length || 1, width >= 1360 ? 4 : 2);
   return (
-    <View style={[{ backgroundColor: colors.card, borderRadius: 26, flexDirection: 'row', flexWrap: 'wrap', overflow: 'hidden' }, shadowStyle('soft')]}>
+    <View style={[{ backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderSoft, flexDirection: 'row', flexWrap: 'wrap', overflow: 'hidden' }, shadowStyle('soft')]}>
       {items.map((child, i) => (
         <View
           key={i}
           style={{
-            width: phone ? '50%' : undefined,
-            flex: phone ? undefined : 1,
-            minWidth: phone ? undefined : 150,
+            width: `${100 / columns}%`,
+            minWidth: 0,
             paddingVertical: phone ? space.md : space.lg,
             paddingHorizontal: phone ? space.md : space.xl,
-            borderLeftWidth: (phone ? i % 2 === 1 : i > 0) ? 1 : 0,
-            borderTopWidth: phone && i >= 2 ? 1 : 0,
+            borderLeftWidth: i % columns ? 1 : 0,
+            borderTopWidth: i >= columns ? 1 : 0,
             borderColor: colors.borderSoft,
           }}
         >
@@ -395,7 +409,7 @@ export function Pill({ label, tone = 'navy' }: { label: string; tone?: 'navy' | 
   const bg = { navy: colors.chip, green: colors.successBg, orange: colors.pendingBg, red: colors.dangerBg, grey: colors.track }[tone];
   const fg = { navy: colors.accent, green: colors.successFg, orange: colors.pendingFg, red: colors.danger, grey: colors.textSoft }[tone];
   return (
-    <View style={{ alignSelf: 'flex-start', height: 26, paddingHorizontal: 10, borderRadius: 999, backgroundColor: bg, justifyContent: 'center' }}>
+    <View style={{ alignSelf: 'flex-start', minHeight: 26, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: bg, justifyContent: 'center' }}>
       <Txt weight="semibold" size={text.caption} color={fg}>{label}</Txt>
     </View>
   );
@@ -404,14 +418,14 @@ export function Pill({ label, tone = 'navy' }: { label: string; tone?: 'navy' | 
 /** A dashboard card with a title row and an optional "See all" style link. */
 export function Panel({ title, subtitle, action, children, style }: { title: string; subtitle?: string; action?: { label: string; onPress: () => void }; children: ReactNode; style?: StyleProp<ViewStyle> }) {
   return (
-    <View style={[{ backgroundColor: colors.card, borderRadius: 26, padding: space.lg, gap: space.md }, shadowStyle('soft'), style]}>
+    <View {...(Platform.OS === 'web' ? { dataSet: { 'report-section': true } } : {})} style={[{ backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderSoft, padding: space.lg, gap: space.md }, shadowStyle('soft'), style]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
         <View style={{ flex: 1, gap: 2 }}>
           <Txt weight="semibold" size={text.title} accessibilityRole="header">{title}</Txt>
           {subtitle ? <Txt size={text.small} color={colors.muted}>{subtitle}</Txt> : null}
         </View>
         {action ? (
-          <Pressable accessibilityRole="link" onPress={action.onPress} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 36 }}>
+          <Pressable accessibilityRole="link" onPress={action.onPress} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, maxWidth: '45%' }}>
             <Txt weight="semibold" size={text.body} color={colors.accent}>{action.label}</Txt>
           </Pressable>
         ) : null}
@@ -424,7 +438,7 @@ export function Panel({ title, subtitle, action, children, style }: { title: str
 /** One anonymous comment, used on teacher dashboards, feedback and reports. */
 export function CommentCard({ comment, rating, meta, elevated }: { comment: string; rating: number | null; meta?: string; elevated?: boolean }) {
   return (
-    <View style={[{ backgroundColor: elevated ? colors.card : colors.surface, borderRadius: 18, padding: space.md, gap: space.xs }, elevated ? shadowStyle('soft') : null]}>
+    <View style={[{ backgroundColor: elevated ? colors.card : colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderSoft, padding: space.md, gap: space.xs }, elevated ? shadowStyle('soft') : null]}>
       <Txt size={text.body} color={colors.text} style={{ lineHeight: 22 }}>{`“${comment}”`}</Txt>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
         {rating != null && (
@@ -445,11 +459,12 @@ export function Chip({ label, on, onPress }: { label: string; on: boolean; onPre
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: on }}
+      aria-pressed={on}
       onPress={() => {
         tap();
         onPress();
       }}
-      style={{ height: 38, paddingHorizontal: 14, borderRadius: 999, justifyContent: 'center', backgroundColor: on ? colors.navy : colors.card, borderWidth: 1, borderColor: on ? colors.navy : colors.borderSoft }}
+      style={{ minHeight: 44, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999, justifyContent: 'center', backgroundColor: on ? colors.navy : colors.card, borderWidth: 1, borderColor: on ? colors.navy : colors.borderSoft }}
     >
       <Txt weight="semibold" size={text.small} color={on ? '#FFFFFF' : colors.textSoft}>{label}</Txt>
     </Pressable>

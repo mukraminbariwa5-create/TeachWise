@@ -67,4 +67,16 @@ class Notifier
         return User::withoutGlobalScope('school')->where('school_id', $schoolId)->whereNotNull('school_id')
             ->where('role', User::ROLE_ADMIN)->whereNull('department_id')->where('is_active', true)->get();
     }
+
+    /** Department people contact their dean; admin accounts contact the school office. */
+    public static function accountAdmins(User $user): Collection
+    {
+        if ($user->isAdmin()) {
+            return self::admins($user->school_id)->where('id', '!=', $user->id);
+        }
+        $department = $user->isStudent() ? $user->studentProfile?->section?->program?->department_id : $user->department_id;
+        return User::withoutGlobalScope('school')->where('school_id', $user->school_id)
+            ->where('role', User::ROLE_ADMIN)->where('is_active', true)
+            ->when($department, fn ($q) => $q->where('department_id', $department), fn ($q) => $q->whereRaw('1 = 0'))->get();
+    }
 }

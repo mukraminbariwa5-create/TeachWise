@@ -32,7 +32,10 @@ class ReportController extends Controller
     public function facultyCsv(Request $request): StreamedResponse
     {
         $periodId = $request->integer('period_id') ?: null;
-        $categories = Question::for('student')->where('type', 'rating')->orderBy('sort_order')->get()
+        // Keep retired criteria that have answers in historical exports.
+        $categories = Question::where('audience', 'student')->where('type', 'rating')
+            ->where(fn ($q) => $q->where('is_active', true)->orWhereIn('id', \App\Models\EvaluationAnswer::query()->select('question_id')))
+            ->orderBy('sort_order')->get()
             ->map(fn (Question $q) => $q->category ?: $q->text)->unique()->values();
 
         return response()->streamDownload(function () use ($periodId, $categories) {

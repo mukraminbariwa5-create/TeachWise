@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { PageStack } from '@/components/PageStack';
 import { usePlatformOverview } from '@/api/platform';
 import { RoleGate } from '@/components/RoleGate';
 import { Shell, type NavItem, type PhoneTabs } from '@/components/Shell';
@@ -31,7 +31,7 @@ function PlatformShell() {
 
   return (
     <Shell nav={nav} settingsItem={{ href: '/platform/settings', icon: 'settings', label: tr('Settings', 'Settings') }} phoneTabs={phoneTabs}>
-      <Stack screenOptions={{ headerShown: false, animation: 'fade_from_bottom', contentStyle: { backgroundColor: 'transparent' } }} />
+      <PageStack />
     </Shell>
   );
 }

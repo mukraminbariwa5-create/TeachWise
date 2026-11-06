@@ -3,6 +3,7 @@ import { tr } from '@/lib/i18n';
 import { Modal, Platform, Pressable, Share, View } from 'react-native';
 import type { StudentDashboard } from '@/api/types';
 import { getPref, setPref } from '@/lib/prefs';
+import { useReducedMotion } from '@/lib/useReducedMotion';
 import { tap, useUI } from '@/lib/ui';
 import { colors, shadowStyle } from '@/theme';
 import { Button } from './Button';
@@ -60,6 +61,7 @@ export function BadgeCard({ badge, name, compact }: { badge: EarnedBadge; name?:
  * Mount on the dashboard.
  */
 export function BadgeCelebration({ data }: { data: StudentDashboard }) {
+  const reduced = useReducedMotion();
   const [badge, setBadge] = useState<EarnedBadge | null>(null);
   const introOpen = useUI((s) => s.introOpen);
   const period = data.period;
@@ -101,7 +103,7 @@ export function BadgeCelebration({ data }: { data: StudentDashboard }) {
   };
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={() => setBadge(null)}>
+    <Modal visible transparent animationType={reduced ? 'none' : 'fade'} onRequestClose={() => setBadge(null)}>
       <View style={{ flex: 1, backgroundColor: 'rgba(5,5,40,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <View style={[{ width: '100%', maxWidth: 420, backgroundColor: colors.card, borderRadius: 32, padding: 22, gap: 16, alignItems: 'center' }, shadowStyle('lift')]}>
           <View style={{ marginTop: -96 }}>

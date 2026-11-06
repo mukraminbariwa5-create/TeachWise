@@ -71,7 +71,7 @@ class CreateAdmin extends Command
         $user = User::create($validator->validated() + [
             'school_id' => $school?->id,
             'role' => $school ? User::ROLE_ADMIN : User::ROLE_PLATFORM,
-            'department' => $school ? 'Administration' : null,
+            'department' => null,
             'is_active' => true,
         ]);
         Audit::log('user.created', $school ? "Created admin {$user->name} from the command line." : "Created the TeachWise owner {$user->name}.", $user, [], $user->id);

@@ -53,6 +53,7 @@ class DepartmentController extends Controller
     public function destroy(Department $department): JsonResponse
     {
         abort_if($department->programs()->exists(), 422, 'Move or delete this department’s programs first.');
+        abort_if(User::where('department_id', $department->id)->exists(), 422, 'This department still has people. Keep it to preserve their department assignment.');
         Audit::log('department.deleted', "Deleted the department {$department->name}.");
         $department->delete();
 

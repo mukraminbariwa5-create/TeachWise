@@ -34,9 +34,9 @@ class WhitelistController extends Controller
     {
         $data = $request->validate([
             'id_numbers' => ['required_without:entries', 'array', 'max:1000'],
-            'id_numbers.*' => ['required', 'string', 'max:50'],
+            'id_numbers.*' => ['required', 'string', 'max:30'],
             'entries' => ['required_without:id_numbers', 'array', 'max:1000'],
-            'entries.*.id_number' => ['required', 'string', 'max:50'],
+            'entries.*.id_number' => ['required', 'string', 'max:30'],
             'entries.*.name' => ['nullable', 'string', 'max:255'],
             'entries.*.section_id' => ['nullable', Tenant::exists('sections')],
             'notes' => ['nullable', 'string', 'max:150'],
@@ -47,6 +47,15 @@ class WhitelistController extends Controller
             $own = AdminScope::sections(\App\Models\Section::query())->pluck('id')->all();
             foreach ($data['entries'] ?? [] as $e) {
                 abort_unless(in_array($e['section_id'] ?? null, $own, true), 422, 'Every ID needs a section from your department.');
+                $existing = WhitelistedId::where('id_number', trim($e['id_number']))->first();
+                abort_if($existing && $existing->section_id && ! in_array($existing->section_id, $own, true), 422, 'This ID is assigned to another department. Ask your school admin to correct it.');
+                $registered = \App\Models\User::where('id_number', trim($e['id_number']))->first();
+                if ($registered) {
+                    abort_unless($registered->isStudent() && AdminScope::managedUsers(\App\Models\User::whereKey($registered->id))->exists(),
+                        422, 'This ID belongs to another account or department.');
+                    abort_if(($e['name'] ?? null) !== $registered->name || (int) ($e['section_id'] ?? 0) !== (int) $registered->studentProfile?->section_id,
+                        422, 'This student is already enrolled. Update their name or section in People so the account and approved record stay together.');
+                }
             }
         }
 

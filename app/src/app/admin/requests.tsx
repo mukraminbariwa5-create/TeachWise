@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Linking, Platform, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { ApiError } from '@/api/client';
-import { useAuth } from '@/auth/store';
 import { useAdminCounts, useAdminPages, useCloseMessage, usePasswordRequests, useResolvePasswordRequest, type InboxMessage, type PasswordRequest } from '@/api/admin';
 import { DataList } from '@/components/admin/DataList';
 import { Avatar } from '@/components/Avatar';
@@ -23,11 +22,9 @@ export default function RequestsScreen() {
   const params = useLocalSearchParams<{ tab?: string }>();
   const [tab, setTab] = useState<Tab>(params.tab === 'inbox' ? 'inbox' : 'passwords');
   const counts = useAdminCounts();
-  const dept = useAuth((s) => s.user?.admin_scope === 'department');
   const scrollHide = useScrollHide();
   return (
     <Screen title={tr('Requests', 'Mga request')} subtitle={tr('Password resets, messages and problem reports', 'Pag-reset ng password, mga mensahe at ulat ng problema')} maxWidth={1000} {...scrollHide}>
-      {!dept && (
       <Segmented<Tab>
         label={tr('Show', 'Ipakita')}
         value={tab}
@@ -37,8 +34,7 @@ export default function RequestsScreen() {
           { key: 'inbox', label: counts.inbox ? tr(`Messages (${counts.inbox})`, `Mensahe (${counts.inbox})`) : tr('Messages', 'Mensahe'), icon: 'inbox' },
         ]}
       />
-      )}
-      {tab === 'passwords' || dept ? <Passwords /> : <Inbox />}
+      {tab === 'passwords' ? <Passwords /> : <Inbox />}
     </Screen>
   );
 }

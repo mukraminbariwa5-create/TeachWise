@@ -38,6 +38,7 @@ class StudentController extends Controller
 
         return response()->json([
             'student' => Present::user($student),
+            'semester' => \App\Models\Semester::current()?->only(['id', 'name']),
             'period' => Present::period($period),
             'teachers' => $teachers,
             'subjects' => $offerings->map(fn (ClassOffering $o) => [
@@ -124,7 +125,7 @@ class StudentController extends Controller
     private function authorizeOffering(User $student, ClassOffering $offering): void
     {
         abort_unless(
-            $student->studentProfile && (int) $offering->section_id === (int) $student->studentProfile->section_id,
+            StudentClasses::offerings($student)->contains('id', $offering->id),
             403,
             'You are not enrolled in this class.'
         );

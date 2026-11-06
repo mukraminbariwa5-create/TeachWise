@@ -18,6 +18,7 @@ import { colors, space } from '@/theme';
 export default function PrintReport() {
   const params = useLocalSearchParams<{ teacher?: string; period?: string }>();
   const user = useAuth((s) => s.user);
+  const school = useAuth((s) => s.school);
   const period = params.period ? Number(params.period) : null;
   const admin = user?.role === 'admin';
   const own = useTeacherReport(period);
@@ -43,10 +44,10 @@ export default function PrintReport() {
   if (user.role === 'student') return <Redirect href="/student" />;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#FFFFFF' }} contentContainerStyle={{ padding: space.xl, maxWidth: 900, width: '100%', alignSelf: 'center', gap: space.lg }}>
+    <ScrollView {...(Platform.OS === 'web' ? { dataSet: { 'print-root': true } } : {})} style={{ flex: 1, backgroundColor: '#FFFFFF' }} contentContainerStyle={{ padding: space.xl, maxWidth: 900, width: '100%', alignSelf: 'center', gap: space.lg }}>
       {r ? (
         <>
-          <ReportView report={r} printable schoolName={info.data?.school_name} />
+          <ReportView report={r} printable schoolName={school?.name ?? info.data?.school_name} />
           {Platform.OS === 'web' && (
             <View style={{ alignItems: 'center' }} {...({ dataSet: { noprint: '1' } } as object)}>
               <Button title={tr('Print again', 'I-print ulit')} variant="outline" onPress={() => window.print()} />

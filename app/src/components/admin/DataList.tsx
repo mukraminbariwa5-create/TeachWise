@@ -1,9 +1,10 @@
 import { type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, TextInput, View } from 'react-native';
 import { tr } from '@/lib/i18n';
 import { tap } from '@/lib/ui';
 import { useLayoutSize } from '@/lib/useLayout';
-import { colors, fonts, shadowStyle, space, text } from '@/theme';
+import { useUiScale } from '@/lib/uiScale';
+import { colors, fonts, radius, shadowStyle, space, text } from '@/theme';
 import { Button } from '../Button';
 import { Icon } from '../Icon';
 import { Txt } from '../Txt';
@@ -48,7 +49,7 @@ export function DataList<T>({
   loadingMore?: boolean;
   onMore?: () => void;
 }) {
-  const phone = useLayoutSize() === 'phone';
+  const phone = useLayoutSize() !== 'desktop';
 
   if (loading && rows.length === 0) return <ActivityIndicator color={colors.accent} style={{ marginVertical: space.xxl }} />;
   if (rows.length === 0 && empty) return <EmptyState mood={empty.mood ?? 'shy'} title={empty.title} message={empty.message} action={empty.action} />;
@@ -71,7 +72,7 @@ export function DataList<T>({
                 {rest
                   .filter((c) => c.phone)
                   .map((c) => (
-                    <View key={c.label} style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                    <View key={c.label} style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                       <Txt size={text.small} color={colors.muted}>{`${c.label}:`}</Txt>
                       <Cell value={c.render(row)} small />
                     </View>
@@ -81,7 +82,7 @@ export function DataList<T>({
               {onPress && !right && <Icon name="chevronRight" size={16} color={colors.muted} strokeWidth={2.2} />}
             </>
           );
-          const style = [{ backgroundColor: colors.card, borderRadius: 20, padding: space.md, flexDirection: 'row' as const, alignItems: 'center' as const, gap: space.sm }, shadowStyle('soft')];
+          const style = [{ backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderSoft, padding: space.md, flexDirection: 'row' as const, alignItems: 'center' as const, gap: space.sm }, shadowStyle('soft')];
           return onPress ? (
             <Pressable
               key={keyOf(row)}
@@ -106,7 +107,7 @@ export function DataList<T>({
   }
 
   return (
-    <View style={[{ backgroundColor: colors.card, borderRadius: 24, overflow: 'hidden' }, shadowStyle('soft')]}>
+    <View style={[{ backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderSoft, overflow: 'hidden' }, shadowStyle('soft')]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.sm, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.borderSoft }}>
         {columns.map((c) => (
           <Txt key={c.label} weight="semibold" size={text.caption} color={colors.muted} style={{ flex: c.flex ?? 1, textAlign: c.align ?? 'left' }}>{c.label}</Txt>
@@ -143,7 +144,7 @@ export function DataList<T>({
 function Cell({ value, bold, small }: { value: ReactNode; bold?: boolean; small?: boolean }) {
   if (typeof value === 'string' || typeof value === 'number') {
     return (
-      <Txt weight={bold ? 'semibold' : 'regular'} size={small ? text.small : text.body} color={bold ? colors.text : colors.textSoft} numberOfLines={bold ? 2 : 1} style={{ flexShrink: 1 }}>
+      <Txt weight={bold ? 'semibold' : 'regular'} size={small ? text.small : text.body} color={bold ? colors.text : colors.textSoft} numberOfLines={bold ? 3 : 2} style={{ flexShrink: 1 }}>
         {String(value)}
       </Txt>
     );
@@ -155,7 +156,7 @@ function Cell({ value, bold, small }: { value: ReactNode; bold?: boolean; small?
 export function Toolbar({ children, onAdd, addLabel }: { children?: ReactNode; onAdd?: () => void; addLabel?: string }) {
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', gap: space.sm }}>
-      <View style={{ flex: 1, minWidth: 240, gap: space.sm }}>{children}</View>
+      <View style={{ flex: 1, minWidth: 0, flexBasis: 240, gap: space.sm }}>{children}</View>
       {onAdd && (
         <Pressable
           accessibilityRole="button"
@@ -163,7 +164,7 @@ export function Toolbar({ children, onAdd, addLabel }: { children?: ReactNode; o
             tap();
             onAdd();
           }}
-          style={({ hovered }: { hovered?: boolean }) => ({ height: 50, paddingHorizontal: 20, borderRadius: 16, backgroundColor: hovered ? colors.navyDeep : colors.navy, flexDirection: 'row', alignItems: 'center', gap: 8 })}
+          style={({ hovered }: { hovered?: boolean }) => ({ minHeight: 46, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 16, backgroundColor: hovered ? colors.navyDeep : colors.navy, flexDirection: 'row', alignItems: 'center', gap: 8 })}
         >
           <Icon name="plus" size={18} color="#FFFFFF" strokeWidth={2.4} />
           <Txt weight="semibold" size={text.body} color="#FFFFFF">{addLabel ?? tr('Add', 'Magdagdag')}</Txt>
@@ -175,8 +176,9 @@ export function Toolbar({ children, onAdd, addLabel }: { children?: ReactNode; o
 
 /** Compact search box for list toolbars. */
 export function SearchBox({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  const { desktop } = useUiScale();
   return (
-    <View style={{ height: 50, borderRadius: 16, borderWidth: 1, borderColor: colors.borderSoft, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 }}>
+    <View {...(Platform.OS === 'web' ? { dataSet: { 'input-frame': true } } : {})} style={{ height: desktop ? 56 : 50, borderRadius: 16, borderWidth: 1, borderColor: colors.borderSoft, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 }}>
       <Icon name="search" size={18} color={colors.muted} />
       <TextInput
         value={value}
@@ -186,10 +188,10 @@ export function SearchBox({ value, onChange, placeholder }: { value: string; onC
         accessibilityLabel={placeholder ?? tr('Search', 'Hanapin')}
         autoCapitalize="none"
         autoCorrect={false}
-        style={{ flex: 1, minWidth: 0, height: 48, fontFamily: fonts.regular, fontSize: 15, color: colors.text }}
+        style={{ flex: 1, minWidth: 0, height: desktop ? 54 : 48, fontFamily: fonts.regular, fontSize: desktop ? 17 : 15, color: colors.text }}
       />
       {value ? (
-        <Pressable accessibilityRole="button" accessibilityLabel={tr('Clear search', 'I-clear')} onPress={() => onChange('')} hitSlop={8}>
+        <Pressable accessibilityRole="button" accessibilityLabel={tr('Clear search', 'I-clear')} onPress={() => onChange('')} style={{ minWidth: 40, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="close" size={16} color={colors.muted} strokeWidth={2.2} />
         </Pressable>
       ) : null}

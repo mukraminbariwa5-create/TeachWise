@@ -152,9 +152,7 @@ class SchoolController extends Controller
             ['key' => 'profile', 'done' => (bool) ($school->location && $school->setting('support_email'))],
             ['key' => 'departments', 'done' => Department::exists() && Program::exists()],
             ['key' => 'semester', 'done' => Semester::where('is_active', true)->exists()],
-            ['key' => 'teachers', 'done' => User::where('role', User::ROLE_TEACHER)->exists()],
-            ['key' => 'classes', 'done' => Section::exists() && ClassOffering::exists()],
-            ['key' => 'students', 'done' => \App\Models\WhitelistedId::exists() || User::where('role', User::ROLE_STUDENT)->exists()],
+            ['key' => 'admins', 'done' => Department::exists() && ! Department::whereNotIn('id', User::where('role', User::ROLE_ADMIN)->where('is_active', true)->whereNotNull('department_id')->select('department_id'))->exists()],
             ['key' => 'period', 'done' => EvaluationPeriod::exists()],
         ];
 

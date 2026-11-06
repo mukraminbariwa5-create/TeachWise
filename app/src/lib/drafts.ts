@@ -1,4 +1,4 @@
-import { getPref, setPref } from './prefs';
+import { getPref, setPersistentPref, setPref } from './prefs';
 
 /** Unfinished evaluation answers, kept on this device until the evaluation is submitted. */
 export interface Draft {
@@ -8,6 +8,9 @@ export interface Draft {
   comment: string;
   savedAt: string;
 }
+
+/** A class can be evaluated again next period; accounts on one device must not share drafts. */
+export const scopedDraftId = (offeringId: string | number, accountId: number, periodId?: number) => `${accountId}.${periodId ?? 'none'}.${offeringId}`;
 
 const key = (id: string | number) => `draft.${id}`;
 
@@ -25,9 +28,9 @@ export async function getDraft(offeringId: string | number): Promise<Draft | nul
 }
 
 export async function saveDraft(offeringId: string | number, draft: Omit<Draft, 'savedAt'>): Promise<void> {
-  await setPref(key(offeringId), JSON.stringify({ ...draft, savedAt: new Date().toISOString() }));
+  await setPersistentPref(key(offeringId), JSON.stringify({ ...draft, savedAt: new Date().toISOString() }));
   const ids = await index();
-  if (!ids.includes(String(offeringId))) await setPref('drafts', [...ids, String(offeringId)].join(','));
+  if (!ids.includes(String(offeringId))) await setPersistentPref('drafts', [...ids, String(offeringId)].join(','));
 }
 
 export async function clearDraft(offeringId: string | number): Promise<void> {

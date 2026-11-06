@@ -1,5 +1,4 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/auth/store';
 import { api } from './client';
 import type { Paginated, Period, Person, SchoolInfo, User } from './types';
 
@@ -51,6 +50,8 @@ export interface Semester {
 
 export interface Offering {
   id: number;
+  section_id: number;
+  semester_id: number | null;
   subject: { id: number; code: string | null; name: string; units: number };
   section: string;
   schedule: string | null;
@@ -140,8 +141,8 @@ export function useSendReminders() {
 }
 
 /** Simple lists that come back as { data: [...] }. */
-export function useAdminList<T>(resource: string, params: Record<string, string | number | null | undefined> = {}) {
-  return useQuery({ queryKey: ['admin', resource, params], queryFn: () => api<{ data: T[] }>(`/admin/${resource}${qs(params)}`) });
+export function useAdminList<T>(resource: string, params: Record<string, string | number | null | undefined> = {}, enabled = true) {
+  return useQuery({ queryKey: ['admin', resource, params], queryFn: () => api<{ data: T[] }>(`/admin/${resource}${qs(params)}`), enabled });
 }
 
 /** Paginated lists (users, activity, inbox, errors). Loads more as you scroll. */
@@ -194,9 +195,8 @@ export function useCloseMessage() {
 
 /** Counts for the sidebar badge and overview. */
 export function useAdminCounts() {
-  const schoolAdmin = useAuth((s) => s.user?.admin_scope !== 'department');
   const pw = usePasswordRequests();
-  const inbox = useQuery({ queryKey: ['admin', 'inbox-count'], queryFn: () => api<{ open_count: number }>('/admin/inbox?status=open'), refetchInterval: 60_000, enabled: schoolAdmin });
+  const inbox = useQuery({ queryKey: ['admin', 'inbox-count'], queryFn: () => api<{ open_count: number }>('/admin/inbox?status=open'), refetchInterval: 60_000 });
   return { passwords: pw.data?.pending ?? 0, inbox: inbox.data?.open_count ?? 0 };
 }
 
@@ -208,7 +208,7 @@ export function downloadFacultyCsv(periodId: number | null) {
 
 
 export interface SetupStep {
-  key: 'profile' | 'departments' | 'semester' | 'teachers' | 'classes' | 'students' | 'period';
+  key: 'profile' | 'departments' | 'semester' | 'admins' | 'period';
   done: boolean;
 }
 

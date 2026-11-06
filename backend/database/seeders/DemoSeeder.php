@@ -78,8 +78,8 @@ class DemoSeeder extends Seeder
         ])->mapWithKeys(fn ($p) => [$p[0] => Program::create(['code' => $p[0], 'name' => $p[1], 'department_id' => $p[2]->id])]);
 
         User::create([
-            'id_number' => 'ADMIN-001', 'name' => 'DSU Registrar', 'username' => 'admin',
-            'email' => 'admin@teachwise.test', 'role' => User::ROLE_ADMIN, 'department' => 'Registrar',
+            'id_number' => 'ADMIN-001', 'name' => 'Demo State University', 'username' => 'admin',
+            'email' => 'admin@teachwise.test', 'role' => User::ROLE_ADMIN,
             'password' => 'password',
         ]);
         User::create([
@@ -293,7 +293,7 @@ class DemoSeeder extends Seeder
         Tenant::run($school->id, function () {
             $dept = Department::create(['name' => 'Business Department', 'code' => 'BUS']);
             $program = Program::create(['code' => 'BSBA', 'name' => 'BS Business Administration', 'department_id' => $dept->id]);
-            User::create(['id_number' => 'ADMIN-001', 'name' => 'SCC Admin', 'username' => 'sampleadmin', 'role' => User::ROLE_ADMIN, 'password' => 'password']);
+            User::create(['id_number' => 'ADMIN-001', 'name' => 'Sample Community College', 'username' => 'sampleadmin', 'role' => User::ROLE_ADMIN, 'password' => 'password']);
             $teacher = User::create(['id_number' => 'T-001', 'name' => 'Prof. Jose Reyes', 'username' => 'jreyes', 'role' => User::ROLE_TEACHER, 'department_id' => $dept->id, 'department' => 'Business Department', 'password' => 'password']);
             $term = Semester::create(['name' => '1st Trimester 2026-2027', 'is_active' => true]);
             $section = Section::create(['program_id' => $program->id, 'course' => 'BSBA', 'year_level' => 1, 'name' => 'A']);

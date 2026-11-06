@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { ApiError } from '@/api/client';
@@ -13,6 +13,7 @@ import { Chip, EmptyState, Pill, Screen, Sheet } from '@/components/ui';
 import { inputDate, shortDate } from '@/lib/format';
 import { tr } from '@/lib/i18n';
 import { toast, useScrollHide } from '@/lib/ui';
+import { useReducedMotion } from '@/lib/useReducedMotion';
 import { colors, fonts, shadowStyle, space, text } from '@/theme';
 
 type Tab = 'departments' | 'classes' | 'sections' | 'subjects' | 'semesters';
@@ -23,7 +24,9 @@ export default function AcademicsScreen() {
   const params = useLocalSearchParams<{ tab?: string }>();
   const dept = useAuth((s) => s.user?.admin_scope === 'department');
   const term = useAuth((s) => s.school?.settings.term_label);
-  const [tab, setTab] = useState<Tab>(TABS.includes(params.tab as Tab) ? (params.tab as Tab) : 'classes');
+  const [chosenTab, setTab] = useState<Tab>(TABS.includes(params.tab as Tab) ? (params.tab as Tab) : dept ? 'classes' : 'departments');
+  const shown = dept ? TABS : TABS.filter((t) => t === 'departments' || t === 'semesters');
+  const tab = shown.includes(chosenTab) ? chosenTab : shown[0];
   const scrollHide = useScrollHide();
   useEffect(() => {
     if (TABS.includes(params.tab as Tab)) setTab(params.tab as Tab);
@@ -36,10 +39,9 @@ export default function AcademicsScreen() {
     subjects: tr('Subjects', 'Mga subject'),
     semesters: term === 'trimester' ? tr('Trimesters', 'Mga trimester') : term === 'quarter' ? tr('Quarters', 'Mga quarter') : tr('Semesters', 'Mga semestre'),
   };
-  const shown = TABS.filter((t) => !(dept && t === 'semesters'));
 
   return (
-    <Screen title={tr('Classes & sections', 'Klase at section')} subtitle={tr('Departments, programs, sections, subjects and who teaches each class', 'Mga departamento, programa, section, subject at kung sino ang nagtuturo sa bawat klase')} maxWidth={1100} {...scrollHide}>
+    <Screen title={dept ? tr('Classes & sections', 'Klase at section') : tr('School structure', 'Istruktura ng paaralan')} subtitle={dept ? tr('Manage your department’s subjects, sections and class assignments', 'Pamahalaan ang subject, section at klase ng departamento mo') : tr('Manage departments, programs and the school calendar. Deans manage their own classes.', 'Pamahalaan ang departamento, programa at kalendaryo. Ang dean ang namamahala sa sariling klase.')} maxWidth={1100} {...scrollHide}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.xs }} accessibilityRole="tablist">
         {shown.map((t) => (
           <Chip key={t} label={labels[t]} on={tab === t} onPress={() => setTab(t)} />
@@ -49,7 +51,7 @@ export default function AcademicsScreen() {
       {tab === 'classes' && <Classes />}
       {tab === 'sections' && <Sections />}
       {tab === 'subjects' && <Subjects />}
-      {tab === 'semesters' && <Semesters />}
+      {tab === 'semesters' && <Semesters readOnly={dept} />}
     </Screen>
   );
 }
@@ -78,16 +80,11 @@ function Classes() {
       resource="offerings"
       params={{ section_id: section }}
       noun={tr('class', 'klase')}
-      note={tr('A class is one subject taught by one teacher to one section. Students in that section evaluate that teacher.', 'Ang klase ay isang subject na itinuturo ng isang guro sa isang section. Ie-evaluate ng mga estudyante sa section na iyon ang guro.')}
+      note={tr('Assign a subject, teacher, course/year/section and semester. Matching students automatically see the class on Home when that semester is current.', 'Italaga ang subject, guro, course/year/section at semestre. Awtomatikong makikita ng tugmang estudyante ang klase sa Home kapag kasalukuyan ang semestre.')}
       search={(o, q) => [o.subject.code, o.subject.name, o.teacher.name, o.section].join(' ').toLowerCase().includes(q)}
       filters={
         sectionList.length > 1 ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.xs }}>
-            <Chip label={tr('All sections', 'Lahat ng section')} on={section === null} onPress={() => setSection(null)} />
-            {sectionList.map((s) => (
-              <Chip key={s.id} label={s.label} on={section === s.id} onPress={() => setSection(s.id)} />
-            ))}
-          </ScrollView>
+          <SectionFilters sections={sectionList} selected={section} onSelect={setSection} />
         ) : undefined
       }
       empty={{ title: tr('No classes yet', 'Wala pang klase'), message: tr('Add sections and subjects first, then assign a teacher to each class.', 'Magdagdag muna ng section at subject, saka mag-assign ng guro sa bawat klase.') }}
@@ -95,24 +92,52 @@ function Classes() {
         { label: tr('Subject', 'Subject'), flex: 2, render: (o) => [o.subject.code, o.subject.name].filter(Boolean).join(' · ') },
         { label: tr('Teacher', 'Guro'), flex: 1.5, render: (o) => o.teacher.name, phone: true },
         { label: tr('Section', 'Section'), render: (o) => o.section, phone: true },
+        { label: tr('Semester', 'Semestre'), render: (o) => o.semester ?? tr('Needs assignment', 'Kailangang italaga') },
         { label: tr('Schedule', 'Iskedyul'), flex: 1.3, render: (o) => o.schedule ?? '—' },
       ]}
       fields={[
         { key: 'subject_id', label: tr('Subject', 'Subject'), kind: 'select', searchable: true, icon: 'book', required: true, options: (subjects.data?.data ?? []).map((s) => ({ value: s.id, label: [s.code, s.name].filter(Boolean).join(' · ') })) },
-        { key: 'teacher_id', label: tr('Teacher', 'Guro'), kind: 'select', searchable: true, icon: 'user', required: true, options: (teachers.data?.data ?? []).map((t) => ({ value: t.id, label: t.name, hint: t.department ?? undefined })) },
+        { key: 'teacher_id', label: tr('Teacher', 'Guro'), kind: 'select', searchable: true, icon: 'user', required: true, options: (teachers.data?.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.id, label: t.name, hint: t.department ?? undefined })) },
         { key: 'section_id', label: tr('Section', 'Section'), kind: 'select', searchable: true, icon: 'layers', required: true, options: sectionList.map((s) => ({ value: s.id, label: s.label })) },
-        { key: 'semester_id', label: tr('Semester', 'Semestre'), kind: 'select', icon: 'calendar', searchable: true, options: (semesters.data?.data ?? []).map((s) => ({ value: s.id, label: s.name, hint: s.is_active ? tr('Current', 'Kasalukuyan') : undefined })) },
+        { key: 'semester_id', label: tr('Semester', 'Semestre'), kind: 'select', icon: 'calendar', searchable: true, required: true, options: (semesters.data?.data ?? []).map((s) => ({ value: s.id, label: s.name, hint: s.is_active ? tr('Current', 'Kasalukuyan') : undefined })) },
         { key: 'schedule', label: tr('Schedule', 'Iskedyul'), kind: 'text', icon: 'clock', placeholder: 'MWF 9:00–10:00 AM' },
       ]}
       toForm={(o) => ({
         subject_id: o.subject.id,
         teacher_id: o.teacher.id,
-        section_id: sectionList.find((s) => s.label === o.section)?.id ?? null,
-        semester_id: (semesters.data?.data ?? []).find((s) => s.name === o.semester)?.id ?? null,
+        section_id: o.section_id,
+        semester_id: o.semester_id,
         schedule: o.schedule,
       })}
       blank={{ subject_id: null, teacher_id: null, section_id: section, semester_id: (semesters.data?.data ?? []).find((s) => s.is_active)?.id ?? null, schedule: '' }}
     />
+    </View>
+  );
+}
+
+/** Bounded horizontal strip with mouse-friendly controls as well as touch scrolling. */
+function SectionFilters({ sections, selected, onSelect }: { sections: Section[]; selected: number | null; onSelect: (id: number | null) => void }) {
+  const scroll = useRef<ScrollView>(null);
+  const reduced = useReducedMotion();
+  const [width, setWidth] = useState(0);
+  const [contentWidth, setContentWidth] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const maxOffset = Math.max(0, contentWidth - width);
+  const move = (direction: number) => scroll.current?.scrollTo({ x: Math.max(0, Math.min(maxOffset, offset + direction * Math.max(160, width * 0.8))), animated: !reduced });
+  const arrow = (direction: -1 | 1) => {
+    const disabled = direction === -1 ? offset <= 1 : offset >= maxOffset - 1;
+    return <Pressable accessibilityRole="button" accessibilityLabel={direction === -1 ? tr('Scroll sections left', 'I-scroll ang mga section pakaliwa') : tr('Scroll sections right', 'I-scroll ang mga section pakanan')} disabled={disabled} onPress={() => move(direction)} style={({ hovered }: { hovered?: boolean }) => ({ width: 44, height: 44, flexShrink: 0, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.borderSoft, backgroundColor: hovered && !disabled ? colors.chip : colors.card, opacity: disabled ? 0.35 : 1 })}>
+      <View style={{ transform: [{ rotate: direction === -1 ? '180deg' : '0deg' }] }}><Icon name="chevronRight" size={19} color={colors.accent} /></View>
+    </Pressable>;
+  };
+  return (
+    <View style={{ width: '100%', minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      {arrow(-1)}
+      <ScrollView ref={scroll} testID="section-filters" accessibilityLabel={tr('Filter classes by section', 'I-filter ang mga klase ayon sa section')} horizontal showsHorizontalScrollIndicator style={{ flex: 1, minWidth: 0 }} contentContainerStyle={{ gap: space.xs, paddingBottom: 10 }} onLayout={(e) => setWidth(e.nativeEvent.layout.width)} onContentSizeChange={(w) => setContentWidth(w)} onScroll={(e) => setOffset(e.nativeEvent.contentOffset.x)} scrollEventThrottle={16}>
+        <Chip label={tr('All sections', 'Lahat ng section')} on={selected === null} onPress={() => onSelect(null)} />
+        {sections.map((s) => <Chip key={s.id} label={s.label} on={selected === s.id} onPress={() => onSelect(s.id)} />)}
+      </ScrollView>
+      {arrow(1)}
     </View>
   );
 }
@@ -173,10 +198,11 @@ function Subjects() {
   );
 }
 
-function Semesters() {
+function Semesters({ readOnly = false }: { readOnly?: boolean }) {
   return (
     <CrudSection<Semester>
       resource="semesters"
+      readOnly={readOnly}
       noun={tr('semester', 'semestre')}
       note={tr('Only one semester can be current. Making this one current switches the others off.', 'Isang semestre lang ang puwedeng kasalukuyan. Mao-off ang iba kapag ginawa itong kasalukuyan.')}
       empty={{ title: tr('No semesters yet', 'Wala pang semestre'), message: tr('Add the current semester so dashboards know which classes to show.', 'Idagdag ang kasalukuyang semestre para alam ng dashboard kung aling klase ang ipapakita.') }}

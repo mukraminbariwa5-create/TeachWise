@@ -18,6 +18,8 @@ export function TrendChart({ points, height = 180 }: { points: TrendPoint[]; hei
   const [width, setWidth] = useState(0);
   const [active, setActive] = useState<number | null>(null);
 
+  if (!points.length) return <Txt size={14} color={colors.muted}>{tr('Your trend will appear once ratings are available.', 'Lalabas ang trend kapag may mga rating na.')}</Txt>;
+
   const padL = 28;
   const padR = 16;
   const padT = 26;
@@ -61,7 +63,7 @@ export function TrendChart({ points, height = 180 }: { points: TrendPoint[]; hei
               color={i === shown ? colors.text : colors.muted}
               weight={i === shown ? 'semibold' : 'regular'}
               numberOfLines={1}
-              style={{ position: 'absolute', top: height - padB + 8, left: x(i) - Math.min(step, 120) / 2, width: Math.min(step, 120), textAlign: 'center' }}
+              style={{ position: 'absolute', top: height - padB + 8, left: Math.max(0, Math.min(x(i) - Math.min(step, 120) / 2, width - Math.min(step, 120))), width: Math.min(step, 120), textAlign: 'center' }}
             >
               {p.period}
             </Txt>
@@ -79,10 +81,13 @@ export function TrendChart({ points, height = 180 }: { points: TrendPoint[]; hei
           {points.map((p, i) => (
             <Pressable
               key={p.period_id}
-              accessibilityLabel={`${p.period}: ${fmt(p.average)}`}
+              accessibilityRole="button"
+              accessibilityLabel={`${p.period}: ${fmt(p.average)} / 5, ${p.responses} ${tr('responses', 'sagot')}`}
+              accessibilityState={{ selected: active === i }}
+              aria-pressed={active === i}
               onPress={() => setActive(active === i ? null : i)}
               {...(Platform.OS === 'web' ? { onHoverIn: () => setActive(i), onHoverOut: () => setActive(null) } : {})}
-              style={{ position: 'absolute', top: 0, bottom: 0, left: x(i) - step / 2, width: Math.max(step, 44) }}
+              style={{ position: 'absolute', top: 0, bottom: 0, left: Math.max(0, x(i) - Math.max(step, 44) / 2), width: Math.min(Math.max(step, 44), width - Math.max(0, x(i) - Math.max(step, 44) / 2)) }}
             />
           ))}
         </>
@@ -107,8 +112,8 @@ export function CriteriaBars({ criteria }: { criteria: Criterion[] }) {
         const pct = Math.max(0, Math.min(1, (c.average - 1) / 4));
         return (
           <View key={c.question_id} style={{ gap: 6 }} accessible accessibilityLabel={`${c.category}: ${fmt(c.average)} / 5`}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
-              <Txt weight="medium" size={text.body} numberOfLines={1} style={{ flexShrink: 1 }}>{c.category}</Txt>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.xs }}>
+              <Txt weight="medium" size={text.body} style={{ flexShrink: 1, minWidth: 0 }}>{c.category}</Txt>
               {c.question_id === weakest && <Pill label={tr('Focus area', 'Pagtuunan')} tone="orange" />}
               {c.question_id === strongest && <Pill label={tr('Strongest', 'Pinakamalakas')} tone="green" />}
               <View style={{ flex: 1 }} />

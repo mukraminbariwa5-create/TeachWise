@@ -81,11 +81,11 @@ function faqs(role: string): Faq[] {
   return [
     {
       q: tr('How do students get accounts?', 'Paano nagkakaroon ng account ang mga estudyante?'),
-      a: tr('Add their ID numbers (with names and sections) under Approved IDs, then share your join link from School settings. Students create their own account with their ID.', 'Idagdag ang ID number nila (kasama ang pangalan at section) sa Approved IDs, saka ibahagi ang join link mula sa School settings. Sila na ang gagawa ng account gamit ang ID nila.'),
+      a: tr('The department dean adds approved IDs with names and sections. Students then choose their school and create their own accounts. School admins manage the shared questionnaire and calendar instead.', 'Ang dean ang nagdaragdag ng aprubadong ID, pangalan at section. Pipili ang estudyante ng paaralan at gagawa ng account. Ang school admin ang namamahala sa talatanungan at kalendaryo.'),
     },
     {
       q: tr('How do teachers join?', 'Paano sumasali ang mga guro?'),
-      a: tr('Open People → Invite teachers, paste their names, and send each one their code. They choose “Join with an invite code” in the app.', 'Buksan ang People → Mag-imbita ng guro, i-paste ang mga pangalan, at ipadala ang code sa bawat isa. Pipiliin nila ang “Sumali gamit ang invite code” sa app.'),
+      a: tr('Their department dean opens People → Invite teachers. Each code fixes the teacher’s department. School admins invite deans through Administrator accounts.', 'Binubuksan ng dean ang People → Mag-imbita ng guro. Itinatakda ng code ang departamento ng guro. Ang school admin ay nag-iimbita ng dean sa Mga account ng admin.'),
     },
     {
       q: tr('Can a dean manage only their college?', 'Puwede bang ang dean ay sa kolehiyo lang niya?'),
@@ -110,7 +110,7 @@ export default function HelpScreen() {
   if (!user) return null;
   const list = faqs(user.role);
   // Students and teachers reach their school's admins; admins reach the TeachWise team.
-  const staffToTeachwise = user.role === 'admin';
+  const staffToTeachwise = user.role === 'admin' && user.admin_scope !== 'department';
 
   return (
     <Screen title={tr('Help & feedback', 'Tulong at feedback')} onBack={() => (router.canGoBack() ? router.back() : router.replace(homeFor(user.role)))} {...scrollHide}>

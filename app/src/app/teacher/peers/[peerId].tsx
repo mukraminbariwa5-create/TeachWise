@@ -3,7 +3,7 @@ import { usePeerForm, useSubmitPeer } from '@/api/hooks';
 import { EvaluationFlow } from '@/components/EvaluationFlow';
 import { tr } from '@/lib/i18n';
 
-/** A teacher evaluating a colleague who teaches the same subject. */
+/** A teacher evaluating an eligible colleague in their own department. */
 export default function PeerEvaluateScreen() {
   const { peerId } = useLocalSearchParams<{ peerId: string }>();
   const id = Number(peerId);

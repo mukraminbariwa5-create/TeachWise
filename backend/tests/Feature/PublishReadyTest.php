@@ -128,7 +128,7 @@ class PublishReadyTest extends ApiTestCase
             ->postJson('/api/support', ['kind' => 'problem', 'message' => 'The page froze on submit.', 'screen' => '/student/evaluate/1'])
             ->assertCreated();
 
-        $this->actingAsUsername('admin');
+        $this->actingAsUsername('ccsdean');
         $this->getJson('/api/admin/inbox')->assertOk()->assertJsonPath('open_count', 1)->assertJsonPath('data.0.meta.app_version', '1.0.0');
         $id = SupportMessage::first()->id;
         $this->postJson("/api/admin/inbox/{$id}/close")->assertOk();
@@ -202,7 +202,7 @@ class PublishReadyTest extends ApiTestCase
 
     public function test_admin_lists_support_the_new_screens(): void
     {
-        $this->actingAsUsername('admin');
+        $this->actingAsUsername('ccsdean');
 
         $ids = $this->getJson('/api/admin/whitelist')->assertOk()->json('data');
         $this->assertArrayHasKey('registered', $ids[0]);

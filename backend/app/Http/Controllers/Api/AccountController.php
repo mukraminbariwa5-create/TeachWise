@@ -63,9 +63,13 @@ class AccountController extends Controller
     {
         $user = $request->user();
         $data = $request->validate([
+            'name' => ['sometimes', $user->isSchoolAdmin() ? 'required' : 'prohibited', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users')->ignore($user)],
             'phone_number' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s()]{7,20}$/'],
         ]);
+        if ($user->isSchoolAdmin()) {
+            $data['department'] = null;
+        }
         $user->update($data);
         Audit::log('profile.updated', "{$user->name} updated their contact details.", $user);
 
@@ -174,7 +178,8 @@ class AccountController extends Controller
             'settings' => $user->allSettings(),
             'evaluations_submitted' => $evaluations,
             'notifications' => $user->appNotifications()->latest()->get(['title', 'message', 'read_at', 'created_at']),
-            'professor_wise_chat' => ChatMessage::where('user_id', $user->id)->orderBy('id')->get(['role', 'content', 'created_at']),
+            'professor_wise_chat' => ChatMessage::where('user_id', $user->id)->orderBy('id')->get(['conversation_id', 'role', 'content', 'created_at']),
+            'professor_wise_conversations' => \App\Models\ChatConversation::where('user_id', $user->id)->orderBy('id')->get(['id', 'title', 'created_at', 'updated_at']),
         ]);
     }
 
@@ -192,7 +197,7 @@ class AccountController extends Controller
 
         // Teachers' and admins' records belong to the school, so their deletion goes through an admin.
         if (! $user->isStudent()) {
-            $otherAdmins = Notifier::admins()->where('id', '!=', $user->id);
+            $otherAdmins = Notifier::accountAdmins($user);
             // The only admin left asks TeachWise instead (someone must still run the school).
             $toTeachwise = $otherAdmins->isEmpty();
             SupportMessage::create(['user_id' => $user->id, 'kind' => 'contact', 'message' => 'Please delete my TeachWise account.', 'meta' => array_filter(['type' => 'account_deletion', 'to' => $toTeachwise ? 'teachwise' : null])]);

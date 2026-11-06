@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureRole::class,
             'school_admin' => EnsureSchoolAdmin::class,
+            'department_admin' => \App\Http\Middleware\EnsureDepartmentAdmin::class,
         ]);
         // SetTenant runs first so route models are already limited to the user's school.
         $middleware->api(prepend: [SetTenant::class], append: [SetLanguage::class, SecurityHeaders::class]);

@@ -16,19 +16,21 @@ class ConsistencyRulesTest extends ApiTestCase
 {
     public function test_school_data_with_history_cannot_be_deleted(): void
     {
-        $this->actingAsUsername('admin');
+        $this->actingAsUsername('ccsdean');
         $aishaSection = User::where('username', 'aisha')->first()->studentProfile->section_id;
         $evaluated = ClassOffering::whereHas('evaluations')->first();
         $midterm = EvaluationPeriod::where('name', 'Midterm')->first();
 
         $this->deleteJson("/api/admin/sections/{$aishaSection}")->assertStatus(422);
         $this->deleteJson('/api/admin/subjects/'.Subject::where('code', 'IT 301')->value('id'))->assertStatus(422);
+        $this->actingAsUsername('admin');
         $this->deleteJson('/api/admin/semesters/'.Semester::where('is_active', true)->value('id'))->assertStatus(422);
         $this->deleteJson("/api/admin/periods/{$midterm->id}")->assertStatus(422);
+        $this->actingAsUsername('ccsdean');
         $this->deleteJson("/api/admin/offerings/{$evaluated->id}")->assertStatus(422);
 
         // An empty section made by mistake can go.
-        $empty = Section::create(['course' => 'BSIT', 'year_level' => 5, 'name' => 'Z']);
+        $empty = Section::create(['program_id' => \App\Models\Program::where('code', 'BSIT')->value('id'), 'course' => 'BSIT', 'year_level' => 5, 'name' => 'Z']);
         $this->deleteJson("/api/admin/sections/{$empty->id}")->assertOk();
     }
 
@@ -53,6 +55,7 @@ class ConsistencyRulesTest extends ApiTestCase
         $this->postJson('/api/support', ['kind' => 'problem', 'message' => 'Import keeps failing.'])->assertCreated()
             ->assertJsonPath('message', 'Thanks! Your message was sent to TeachWise support.');
 
+        $this->actingAsUsername('ccsdean');
         $this->getJson('/api/admin/inbox')->assertOk()->assertJsonPath('open_count', 1)->assertJsonPath('data.0.message', 'My class is missing.');
         $this->actingAsUsername('owner');
         $this->getJson('/api/platform/messages')->assertOk()->assertJsonPath('open_count', 1)->assertJsonPath('data.0.school.code', 'DEMO');
@@ -74,7 +77,7 @@ class ConsistencyRulesTest extends ApiTestCase
         $dean = User::where('username', 'ccsdean')->first();
         $this->actingAsUsername('lsantos');
         $this->postJson('/api/me/delete', ['password' => 'password'])->assertStatus(202);
-        $this->assertSame(0, $dean->appNotifications()->where('title', 'Account deletion request')->count());
-        $this->assertSame(1, User::where('username', 'admin')->first()->appNotifications()->where('title', 'Account deletion request')->count());
+        $this->assertSame(1, $dean->appNotifications()->where('title', 'Account deletion request')->count());
+        $this->assertSame(0, User::where('username', 'admin')->first()->appNotifications()->where('title', 'Account deletion request')->count());
     }
 }

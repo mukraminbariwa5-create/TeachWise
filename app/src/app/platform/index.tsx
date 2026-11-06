@@ -1,6 +1,7 @@
 import { Pressable, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { usePlatformOverview } from '@/api/platform';
+import { DashboardBanner } from '@/components/DashboardBanner';
 import { Icon } from '@/components/Icon';
 import { SchoolRow } from '@/components/SchoolRow';
 import { ScreenState } from '@/components/ScreenState';
@@ -23,6 +24,7 @@ export default function PlatformHome() {
         <ScreenState loading={q.isLoading} error={q.error} onRetry={() => q.refetch()} />
       ) : (
         <>
+          <DashboardBanner title={d.schools.pending ? tr(`${d.schools.pending} school applications to review`, `${d.schools.pending} aplikasyon ng paaralan ang susuriin`) : tr('Your schools at a glance', 'Pangkalahatang tingin sa mga paaralan')} description={tr('Review school access and app activity. Evaluation feedback stays within each school.', 'Suriin ang access at aktibidad. Nananatili sa bawat paaralan ang feedback.')} mood="working" action={{ label: tr('View schools', 'Tingnan ang mga paaralan'), onPress: () => router.push('/platform/schools') }} />
           <StatRow>
             <StatCard icon="book" label={tr('Active schools', 'Aktibong paaralan')} value={String(d.schools.active)} hint={d.schools.suspended ? tr(`${d.schools.suspended} paused`, `${d.schools.suspended} naka-pause`) : undefined} />
             <StatCard icon="inbox" tone="orange" label={tr('Waiting for approval', 'Naghihintay ng apruba')} value={String(d.schools.pending)} />

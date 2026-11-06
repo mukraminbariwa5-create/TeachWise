@@ -3,11 +3,31 @@ node_modules/
 backend/vendor/
 app/dist/
 app/.expo/
+.ui-checks/
 
 # Secrets and local data
 .env
+.env.*
+!.env.example
+!.env.production.example
 *.sqlite
 *.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sql
+*.sql.gz
+*.dump
+*.bak
+*.backup
+*.zip
+*.apk
+*.aab
+*.ipa
+*.jks
+*.keystore
+*.p12
+*.p8
+coverage/
 
 # Hand-off archives
 *.tgz

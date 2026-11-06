@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { PageStack } from '@/components/PageStack';
 import { useTeacherDashboard } from '@/api/hooks';
 import { weakestCriterion } from '@/components/Charts';
 import { RoleGate } from '@/components/RoleGate';
@@ -65,7 +65,7 @@ function TeacherShell() {
       tipFor={tipFor}
       hideTabsOn={(path) => path.startsWith('/teacher/peers')}
     >
-      <Stack screenOptions={{ headerShown: false, animation: 'fade_from_bottom', contentStyle: { backgroundColor: 'transparent' } }} />
+      <PageStack />
     </Shell>
   );
 }

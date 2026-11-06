@@ -1,7 +1,9 @@
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, useWindowDimensions, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { ApiError } from '@/api/client';
 import { useAdminCounts, useAdminDashboard, useSendReminders, type AdminDashboard } from '@/api/admin';
+import { DashboardBanner } from '@/components/DashboardBanner';
+import { ProgressBar } from '@/components/ProgressRing';
 import { Avatar } from '@/components/Avatar';
 import { formatRating } from '@/components/Charts';
 import { Icon, type IconName } from '@/components/Icon';
@@ -12,8 +14,8 @@ import { Bone } from '@/components/Skeleton';
 import { Txt } from '@/components/Txt';
 import { SetupChecklist } from '@/components/admin/SetupChecklist';
 import { confirm, Panel, StatCard, StatRow } from '@/components/ui';
-import { WiseMascot, type Mood } from '@/components/WiseMascot';
-import { firstName, greetingWord, shortDate } from '@/lib/format';
+import type { Mood } from '@/components/WiseMascot';
+import { firstName, greetingWord, isClosingSoon, shortDate } from '@/lib/format';
 import { tr } from '@/lib/i18n';
 import { toast, useScrollHide } from '@/lib/ui';
 import { useLayoutSize } from '@/lib/useLayout';
@@ -24,6 +26,7 @@ import { colors, space, text } from '@/theme';
 /** The admin's overview: the current period, completion, what needs attention and how faculty are rated. */
 export default function AdminHome() {
   const size = useLayoutSize();
+  const columns = useWindowDimensions().width >= 1320;
   const phone = size === 'phone';
   const query = useAdminDashboard();
   const user = useAuth((s) => s.user);
@@ -41,14 +44,14 @@ export default function AdminHome() {
     <ScrollView
       {...scrollHide}
       refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} tintColor={colors.accent} />}
-      contentContainerStyle={{ paddingHorizontal: phone ? space.lg : 52, paddingTop: phone ? 22 : 40, paddingBottom: phone ? 32 : 120, gap: space.lg, width: '100%', maxWidth: 1240, alignSelf: 'center' }}
+      contentContainerStyle={{ paddingHorizontal: phone ? space.lg : 32, paddingTop: phone ? 18 : 32, paddingBottom: phone ? 36 : 72, gap: phone ? space.lg : 24, width: '100%', maxWidth: 1440, alignSelf: 'center' }}
     >
       {phone ? <AppBar title={tr('Overview', 'Overview')} subtitle={d.semester?.name} /> : <PageHeader title={tr('Overview', 'Overview')} />}
       <Hero d={d} phone={phone} />
       {!dept && <SetupChecklist />}
       <Stats d={d} compact={phone} />
       <Attention />
-      <View style={{ flexDirection: size === 'desktop' ? 'row' : 'column', gap: space.lg, alignItems: 'flex-start' }}>
+      <View style={{ flexDirection: columns ? 'row' : 'column', gap: 24, alignItems: 'flex-start' }}>
         <View style={{ flex: 1, alignSelf: 'stretch' }}>
           <Completion d={d} />
         </View>
@@ -112,6 +115,7 @@ function Hero({ d, phone }: { d: AdminDashboard; phone: boolean }) {
   const router = useRouter();
   const user = useAuth((s) => s.user);
   const school = useAuth((s) => s.school);
+  const dept = user?.admin_scope === 'department';
   const reminders = useSendReminders();
   const p = d.period;
 
@@ -123,23 +127,24 @@ function Hero({ d, phone }: { d: AdminDashboard; phone: boolean }) {
   if (!p) {
     mood = 'idea';
     title = tr('No evaluation period scheduled', 'Walang nakatakdang evaluation period');
-    body = tr('Create one and students will be notified when it opens.', 'Gumawa ng isa at maaabisuhan ang mga estudyante pagbukas nito.');
-    cta = { label: tr('Set up a period', 'Gumawa ng period'), onPress: () => router.push('/admin/evaluation') };
+    body = dept ? tr('Your school admin sets the shared dates. Prepare your department’s classes and approved IDs.', 'Ang school admin ang nagtatakda ng petsa. Ihanda ang klase at aprubadong ID ng departamento mo.') : tr('Create one and students will be notified when it opens.', 'Gumawa ng isa at maaabisuhan ang mga estudyante pagbukas nito.');
+    cta = { label: dept ? tr('Prepare classes', 'Ihanda ang mga klase') : tr('Set up a period', 'Gumawa ng period'), onPress: () => router.push(dept ? '/admin/academics' : '/admin/evaluation') };
   } else if (!p.is_open) {
     mood = 'working';
-    title = tr(`${p.name} opens ${shortDate(p.opens_at)}`, `Magbubukas ang ${p.name} sa ${shortDate(p.opens_at)}`);
-    body = tr('Make sure classes, sections and approved IDs are ready before it starts.', 'Siguraduhing handa ang mga klase, section at aprubadong ID bago ito magsimula.');
-    cta = { label: tr('Review setup', 'Suriin ang setup'), onPress: () => router.push('/admin/academics') };
+    const upcoming = new Date(p.opens_at).getTime() > Date.now();
+    title = upcoming ? tr(`${p.name} opens ${shortDate(p.opens_at)}`, `Magbubukas ang ${p.name} sa ${shortDate(p.opens_at)}`) : tr(`${p.name} has closed`, `Sarado na ang ${p.name}`);
+    body = upcoming ? (dept ? tr('Make sure your department’s classes, sections and approved IDs are ready.', 'Siguraduhing handa ang klase, section at aprubadong ID ng departamento mo.') : tr('Check the shared questionnaire and calendar, and coordinate readiness with your deans.', 'Suriin ang talatanungan at kalendaryo at makipag-ugnayan sa mga dean.')) : tr('Review participation and available faculty reports for this period.', 'Suriin ang partisipasyon at mga available na faculty report para sa period na ito.');
+    cta = { label: tr('Review setup', 'Suriin ang setup'), onPress: () => router.push(dept ? '/admin/academics' : '/admin/evaluation') };
   } else {
     mood = d.completion.percent >= 80 ? 'proud' : 'lecture';
-    title = tr(`${p.name}: ${d.completion.percent}% complete`, `${p.name}: ${d.completion.percent}% tapos`);
+    title = isClosingSoon(p) ? tr(`${p.name} is closing soon`, `Malapit nang magsara ang ${p.name}`) : tr(`${p.name}: ${d.completion.percent}% complete`, `${p.name}: ${d.completion.percent}% tapos`);
     body = tr(`${d.completion.completed} of ${d.completion.expected} evaluations in. Closes ${shortDate(p.closes_at)}.`, `${d.completion.completed} sa ${d.completion.expected} na evaluation ang pasok. Magsasara ${shortDate(p.closes_at)}.`);
-    if (d.completion.percent < 100 && user?.admin_scope !== 'department') {
+    if (d.completion.percent < 100 && dept) {
       cta = {
         label: tr('Remind students', 'Paalalahanan ang mga estudyante'),
         busy: reminders.isPending,
         onPress: async () => {
-          if (!(await confirm({ title: tr('Send a reminder?', 'Magpadala ng paalala?'), message: tr('Every student with pending evaluations gets a notification.', 'Makakatanggap ng notification ang bawat estudyanteng may hindi pa tapos.'), confirmLabel: tr('Send', 'Ipadala'), mood: 'please' }))) return;
+          if (!(await confirm({ title: tr('Send a reminder?', 'Magpadala ng paalala?'), message: tr('Students in your department with pending evaluations get a notification.', 'Makakatanggap ng notification ang estudyante sa departamento mo na may hindi pa tapos.'), confirmLabel: tr('Send', 'Ipadala'), mood: 'please' }))) return;
           reminders.mutate(undefined, {
             onSuccess: (r) => toast({ title: r.message, tone: 'success', mood: 'cheer' }),
             onError: (e) => toast({ title: e instanceof ApiError ? e.firstMessage : tr('Couldn’t send reminders.', 'Hindi naipadala ang paalala.') }),
@@ -149,37 +154,9 @@ function Hero({ d, phone }: { d: AdminDashboard; phone: boolean }) {
     }
   }
 
-  const sticker = phone ? 112 : 190;
-  return (
-    <FadeIn>
-      <View style={{ backgroundColor: colors.frame, borderRadius: phone ? 30 : 36, paddingVertical: phone ? 22 : 30, paddingLeft: phone ? 22 : 34, paddingRight: phone ? sticker - 4 : sticker + 8, minHeight: phone ? 150 : 176 }}>
-        <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: phone ? 30 : 36, overflow: 'hidden' }}>
-          <View style={{ position: 'absolute', right: -50, top: -70, width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(255,255,255,0.07)' }} />
-        </View>
-        <Txt weight="medium" size={phone ? 13 : 15} color={colors.onFrameMuted} numberOfLines={1}>{adminGreeting(user?.name ?? '', user?.admin_scope === 'department' ? user?.department ?? null : school?.short_name ?? school?.name ?? null)}</Txt>
-        <Txt weight="bold" size={phone ? 22 : 30} color="#FFFFFF" style={{ marginTop: 4, letterSpacing: -0.5, lineHeight: phone ? 28 : 36 }} accessibilityRole="header">{title}</Txt>
-        <Txt size={phone ? 14 : 16} color={colors.onFrameMuted} style={{ marginTop: 6, lineHeight: phone ? 20 : 23 }}>{body}</Txt>
-        {p?.is_open && (
-          <View style={{ marginTop: 14, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.18)', overflow: 'hidden', maxWidth: 420 }} accessibilityLabel={`${d.completion.percent}%`}>
-            <View style={{ width: `${d.completion.percent}%`, height: 8, borderRadius: 4, backgroundColor: '#FFFFFF' }} />
-          </View>
-        )}
-        {cta && (
-          <Pressable
-            accessibilityRole="button"
-            disabled={cta.busy}
-            onPress={cta.onPress}
-            style={({ hovered }: { hovered?: boolean }) => ({ marginTop: phone ? 14 : 18, alignSelf: 'flex-start', height: phone ? 42 : 48, paddingHorizontal: phone ? 16 : 22, borderRadius: 999, backgroundColor: hovered ? '#E9EAFB' : '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 8, opacity: cta.busy ? 0.7 : 1 })}
-          >
-            <Txt weight="semibold" size={phone ? 14 : 16} color="#0B0B6E" numberOfLines={1}>{cta.busy ? tr('Sending…', 'Ipinapadala…') : cta.label}</Txt>
-          </Pressable>
-        )}
-        <View pointerEvents="none" style={{ position: 'absolute', right: phone ? -4 : 14, bottom: 0 }}>
-          <WiseMascot size={sticker} mood={mood} shadow={false} />
-        </View>
-      </View>
-    </FadeIn>
-  );
+  return <DashboardBanner eyebrow={adminGreeting(user?.name ?? '', user?.admin_scope === 'department' ? user?.department ?? null : school?.short_name ?? school?.name ?? null)} title={title} description={body} mood={mood} action={cta}>
+    {p?.is_open && <View style={{ marginTop: 5, maxWidth: 440 }}><ProgressBar value={d.completion.percent / 100} height={6} color={colors.brand} /></View>}
+  </DashboardBanner>;
 }
 
 /** Things waiting for the admin. Hidden when there's nothing to do. */
@@ -199,7 +176,7 @@ function Attention() {
           key={i.label}
           accessibilityRole="button"
           onPress={() => router.push(i.href as Href)}
-          style={({ hovered }: { hovered?: boolean }) => ({ flex: 1, minWidth: 260, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: hovered ? colors.urgentBg : colors.pendingBg, borderRadius: 20, padding: space.md })}
+          style={({ hovered }: { hovered?: boolean }) => ({ flex: 1, minWidth: 0, flexBasis: 260, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: hovered ? colors.urgentBg : colors.pendingBg, borderRadius: 20, padding: space.md })}
         >
           <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }}>
             <Icon name={i.icon} size={20} color={colors.pendingFg} />

@@ -1,5 +1,6 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { colors } from '@/theme';
+import { useUiScale } from '@/lib/uiScale';
 
 export type IconName =
   | 'menu' | 'home' | 'user' | 'chat' | 'clipboard' | 'clock' | 'settings' | 'search' | 'bell'
@@ -15,11 +16,12 @@ interface Props {
 
 /** Line icons used across TeachWise (same set as the design). */
 export function Icon({ name, size = 24, color, strokeWidth = 1.7 }: Props) {
+  const renderedSize = Math.round(size * useUiScale().icon);
   color = color ?? colors.text;
   const p = { stroke: color, strokeWidth, fill: 'none', strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <Svg width={renderedSize} height={renderedSize} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
       {name === 'menu' && <Path d="M4 7h16M8 12h12M4 17h16" {...p} />}
       {name === 'sidebar' && (
         <>

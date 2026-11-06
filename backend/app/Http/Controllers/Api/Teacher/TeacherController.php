@@ -167,30 +167,31 @@ class TeacherController extends Controller
             ->get();
     }
 
-    /** Colleagues who teach at least one of the same subjects this semester. */
+    /** Active colleagues in the assigned department; unassigned staff have no eligible peers. */
     private function peers(User $teacher, ?EvaluationPeriod $period): Collection
     {
+        if (! $teacher->department_id) {
+            return collect();
+        }
         $mySubjectIds = $this->myOfferings($teacher)->pluck('subject_id')->unique();
         $semester = Semester::current();
-
-        $theirs = ClassOffering::query()
-            ->whereIn('subject_id', $mySubjectIds)
-            ->where('teacher_id', '!=', $teacher->id)
-            ->when($semester, fn ($q) => $q->where(fn ($w) => $w->where('semester_id', $semester->id)->orWhereNull('semester_id')))
-            ->with(['teacher', 'subject', 'section'])
-            ->get()
-            ->groupBy('teacher_id');
+        $colleagues = User::where('role', User::ROLE_TEACHER)
+            ->where('is_active', true)->whereKeyNot($teacher->id)
+            ->where('department_id', $teacher->department_id)
+            ->with(['offerings' => fn ($q) => $q
+                ->whereIn('subject_id', $mySubjectIds)
+                ->where(fn ($w) => $semester ? $w->where('semester_id', $semester->id)->orWhereNull('semester_id') : $w->whereNull('semester_id'))
+                ->with('subject')])
+            ->orderBy('name')->get();
 
         $done = $period
             ? Evaluation::where('evaluator_id', $teacher->id)->where('evaluation_period_id', $period->id)->pluck('teacher_id')->all()
             : [];
 
-        return $theirs->map(function (Collection $offerings) use ($done) {
-            $peer = $offerings->first()->teacher;
-
+        return $colleagues->map(function (User $peer) use ($done) {
             return [
                 'teacher' => Present::person($peer),
-                'shared_subjects' => $offerings->map(fn ($o) => $o->subject->code)->unique()->values(),
+                'shared_subjects' => $peer->offerings->map(fn ($o) => $o->subject->code)->unique()->values(),
                 'status' => in_array($peer->id, $done) ? 'completed' : 'pending',
             ];
         })->sortBy(fn ($p) => $p['status'] === 'completed')->values();
@@ -201,7 +202,7 @@ class TeacherController extends Controller
         $isPeer = $peer->isTeacher() && $peer->id !== $teacher->id
             && $this->peers($teacher, null)->contains(fn ($p) => $p['teacher']['id'] === $peer->id);
 
-        abort_unless($isPeer, 403, 'You can only evaluate colleagues who share a subject with you.');
+        abort_unless($isPeer, 403, 'You can only evaluate active colleagues within your assigned department. Ask your admin if your department is missing.');
     }
 
     private function peerDone(User $teacher, User $peer, EvaluationPeriod $period): bool

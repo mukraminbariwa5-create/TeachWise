@@ -29,6 +29,7 @@ class EvaluationPeriod extends Model
     public static function openNow(string $type = 'student'): ?self
     {
         return static::query()
+            ->forCurrentSemester()
             ->where('type', $type)
             ->where('opens_at', '<=', now())
             ->where('closes_at', '>=', now())
@@ -40,7 +41,15 @@ class EvaluationPeriod extends Model
     public static function currentOrNext(string $type = 'student'): ?self
     {
         return static::openNow($type)
-            ?? static::query()->where('type', $type)->where('opens_at', '>', now())->orderBy('opens_at')->first();
+            ?? static::query()->forCurrentSemester()->where('type', $type)->where('opens_at', '>', now())->orderBy('opens_at')->first();
+    }
+
+    public function scopeForCurrentSemester(\Illuminate\Database\Eloquent\Builder $query): void
+    {
+        $semester = Semester::current();
+        $query->where(fn ($q) => $semester
+            ? $q->where('semester_id', $semester->id)->orWhereNull('semester_id')
+            : $q->whereNull('semester_id'));
     }
 
     public function getIsOpenAttribute(): bool

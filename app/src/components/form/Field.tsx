@@ -5,6 +5,9 @@ import { colors, fonts } from '@/theme';
 import { Icon, type IconName } from '../Icon';
 import { Txt } from '../Txt';
 
+import { useReducedMotion } from '@/lib/useReducedMotion';
+import { useUiScale } from '@/lib/uiScale';
+
 const native = Platform.OS !== 'web';
 
 /** idle: nothing to say yet · checking: asking the server · valid: ✓ · invalid: ✗ with a reason */
@@ -38,19 +41,21 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
   { label, icon, state = 'idle', message, hint, max, right, locked, shake = 0, children, onFocus, onBlur, value, ...input },
   ref
 ) {
+  const reduced = useReducedMotion();
+  const { desktop } = useUiScale();
   const [focused, setFocused] = useState(false);
   const x = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (!shake) return;
+    if (!shake || reduced) return;
     x.setValue(0);
     Animated.sequence(
       [10, -10, 7, -7, 3, 0].map((v) => Animated.timing(x, { toValue: v, duration: 55, useNativeDriver: native }))
     ).start();
-  }, [shake, x]);
+  }, [shake, x, reduced]);
 
   const border =
-    state === 'invalid' ? colors.danger : state === 'valid' ? colors.successFg : focused ? colors.navy : colors.border;
+    state === 'invalid' ? colors.danger : state === 'valid' ? colors.successFg : focused ? colors.focusBorder : colors.border;
   const iconColor = state === 'invalid' ? colors.danger : focused || state === 'valid' ? colors.accent : colors.muted;
   const msgColor = state === 'invalid' ? colors.danger : state === 'valid' ? colors.successFg : colors.muted;
   const length = typeof value === 'string' ? value.length : 0;
@@ -67,8 +72,9 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
         )}
       </View>
       <Animated.View
+        {...(Platform.OS === 'web' ? { dataSet: { 'input-frame': true } } : {})}
         style={{
-          minHeight: 54,
+          minHeight: desktop ? 58 : 54,
           borderRadius: 16,
           borderWidth: 1.5,
           borderColor: border,
@@ -88,6 +94,8 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
           placeholderTextColor={colors.placeholder}
           accessibilityLabel={label}
           accessibilityHint={message ?? hint}
+          aria-invalid={state === 'invalid'}
+          aria-busy={state === 'checking'}
           maxLength={max}
           {...input}
           onFocus={(e) => {
@@ -98,7 +106,7 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
             setFocused(false);
             onBlur?.(e);
           }}
-          style={{ flex: 1, minWidth: 0, ...(input.multiline ? { minHeight: 96, paddingVertical: 14, textAlignVertical: 'top' as const } : { height: 52 }), fontFamily: fonts.regular, fontSize: 16, color: locked ? colors.textSoft : colors.text }}
+          style={{ flex: 1, minWidth: 0, ...(input.multiline ? { minHeight: 112, paddingVertical: 14, textAlignVertical: 'top' as const } : { height: desktop ? 56 : 52 }), fontFamily: fonts.regular, fontSize: desktop ? 18 : 16, color: locked ? colors.textSoft : colors.text }}
         />
         {state === 'checking' && <ActivityIndicator size="small" color={colors.accent} />}
         {state === 'valid' && <Icon name="checkCircle" size={20} color={colors.successFg} strokeWidth={2} />}
@@ -188,7 +196,7 @@ export function useDebounced<T>(value: T, ms = 450): T {
 /** A labelled on/off switch row. */
 export function Toggle({ label, value, onChange, hint }: { label: string; value: boolean; onChange: (v: boolean) => void; hint?: string }) {
   return (
-    <Pressable accessibilityRole="switch" accessibilityState={{ checked: value }} accessibilityLabel={label} onPress={() => onChange(!value)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 }}>
+    <Pressable accessibilityRole="switch" accessibilityState={{ checked: value }} aria-checked={value} accessibilityLabel={label} onPress={() => onChange(!value)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 }}>
       <View style={{ width: 46, height: 28, borderRadius: 14, padding: 3, backgroundColor: value ? colors.navy : colors.track, alignItems: value ? 'flex-end' : 'flex-start', justifyContent: 'center' }}>
         <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#FFFFFF' }} />
       </View>
@@ -206,13 +214,13 @@ export function Checkbox({ value, onChange, children, invalid, label }: { value:
     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
       <Pressable
         accessibilityRole="checkbox"
-        accessibilityState={{ checked: value }}
+        accessibilityState={{ checked: value }} aria-checked={value}
         accessibilityLabel={label}
         onPress={() => onChange(!value)}
         hitSlop={10}
-        style={{ width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: invalid ? colors.danger : value ? colors.navy : colors.border, backgroundColor: value ? colors.navy : colors.card, alignItems: 'center', justifyContent: 'center', marginTop: 1 }}
+        style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginTop: -8, marginLeft: -8 }}
       >
-        {value && <Icon name="check" size={15} color="#FFFFFF" strokeWidth={3} />}
+        <View style={{ width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: invalid ? colors.danger : value ? colors.navy : colors.border, backgroundColor: value ? colors.navy : colors.card, alignItems: 'center', justifyContent: 'center' }}>{value && <Icon name="check" size={15} color="#FFFFFF" strokeWidth={3} />}</View>
       </Pressable>
       <View style={{ flex: 1 }}>{children}</View>
     </View>

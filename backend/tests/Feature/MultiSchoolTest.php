@@ -30,19 +30,22 @@ class MultiSchoolTest extends ApiTestCase
 
         $this->actingAsUsername('sampleadmin');
         $names = collect($this->getJson('/api/admin/users?per_page=500')->assertOk()->json('data'))->pluck('username');
-        $this->assertContains('mara', $names);
+        $this->assertContains('sampleadmin', $names);
+        $this->assertNotContains('mara', $names);
         $this->assertNotContains('aisha', $names);
 
         $this->getJson("/api/admin/users/{$aisha->id}")->assertNotFound();
         $this->putJson("/api/admin/sections/{$demoSection->id}", ['course' => 'X', 'year_level' => 1, 'name' => 'Z'])->assertNotFound();
         $this->deleteJson("/api/admin/users/{$aisha->id}")->assertNotFound();
-        $this->assertSame(1, count($this->getJson('/api/admin/sections')->json('data')));
+        $this->getJson('/api/admin/sections')->assertForbidden();
     }
 
     public function test_ids_from_another_school_are_rejected(): void
     {
         $demoTeacher = User::withoutGlobalScopes()->where('username', 'lsantos')->first();
-        $this->actingAsUsername('sampleadmin');
+        $schoolAdmin = $this->actingAsUsername('sampleadmin');
+        $dean = User::factory()->admin()->create(['department_id' => \App\Models\Department::firstOrFail()->id]);
+        $this->actingAsUsername($dean->username);
         $section = Section::first();
         $subject = \App\Models\Subject::first();
 
@@ -128,7 +131,7 @@ class MultiSchoolTest extends ApiTestCase
 
     public function test_teachers_join_with_invites_from_their_admin(): void
     {
-        $this->actingAsUsername('admin');
+        $this->actingAsUsername('ccsdean');
         $codes = $this->postJson('/api/admin/invites', ['role' => 'teacher', 'people' => [['name' => 'Prof. New One'], ['name' => 'Prof. New Two', 'email' => 'two@dsu.test']]])
             ->assertCreated()->json('data.*.code');
         $this->assertCount(2, $codes);
@@ -217,7 +220,7 @@ class MultiSchoolTest extends ApiTestCase
 
     public function test_class_import_creates_subjects_and_sections(): void
     {
-        $this->actingAsUsername('admin');
+        $this->actingAsUsername('ccsdean');
         $res = $this->postJson('/api/admin/import/classes', ['rows' => [
             ['subject_code' => 'IT 401', 'subject_name' => 'Capstone 1', 'section' => 'BSIT 4A', 'teacher' => 'T-002', 'schedule' => 'Sat 8-11'],
             ['subject_code' => 'IT 402', 'section' => 'BSCS 1-C', 'teacher' => 'lsantos'],

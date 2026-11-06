@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Redirect } from 'expo-router';
 import { Platform, Share, View } from 'react-native';
 import { ApiError, apiUpload, api } from '@/api/client';
 import { useAdminSchool, useSaveSchool, type AdminSchool } from '@/api/admin';
@@ -21,6 +22,11 @@ type SheetName = 'profile' | 'contacts' | 'scale' | 'delete' | null;
 
 /** The school's own settings: profile and logo, join link, how evaluations work, and its data. */
 export default function SchoolSettingsScreen() {
+  const dept = useAuth((s) => s.user?.admin_scope === 'department');
+  return dept ? <Redirect href="/admin" /> : <SchoolSettingsContent />;
+}
+
+function SchoolSettingsContent() {
   const q = useAdminSchool();
   const save = useSaveSchool();
   const setSchool = useAuth((s) => s.setSchool);
@@ -152,7 +158,7 @@ export default function SchoolSettingsScreen() {
             />
           </View>
         </View>
-        <ListRow icon="users" title={tr('Peer evaluation', 'Peer evaluation')} subtitle={tr('Teachers evaluate colleagues who teach the same subject', 'Ine-evaluate ng guro ang kasamahang may parehong subject')} toggle={{ value: st.peer_evaluation, onChange: (v) => quick({ settings: { peer_evaluation: v } }) }} />
+        <ListRow icon="users" title={tr('Peer evaluation', 'Peer evaluation')} subtitle={tr('Teachers evaluate active colleagues in their own department only', 'Aktibong kasamahan sa sariling departamento lamang ang ine-evaluate ng guro')} toggle={{ value: st.peer_evaluation, onChange: (v) => quick({ settings: { peer_evaluation: v } }) }} />
         <ListRow icon="list" title={tr('Rating labels', 'Mga label ng rating')} subtitle={st.scale.join(' · ')} onPress={() => setSheet('scale')} last />
       </Section>
 

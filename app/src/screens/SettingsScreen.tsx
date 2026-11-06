@@ -16,7 +16,7 @@ import { APP_VERSION } from '@/lib/appInfo';
 import { tr, useLang, type Lang } from '@/lib/i18n';
 import { enablePush, openSystemSettings, pushStatus, type PushStatus } from '@/lib/push';
 import { useSettings } from '@/lib/settings';
-import { useTheme, type Appearance } from '@/lib/theme';
+import { useTheme, type Mode } from '@/lib/theme';
 import { toast, useScrollHide } from '@/lib/ui';
 import { colors, space, text } from '@/theme';
 
@@ -24,7 +24,7 @@ import { colors, space, text } from '@/theme';
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
-  const { appearance, setAppearance } = useTheme();
+  const { appearance, mode, setAppearance } = useTheme();
   const { lang, setLang } = useLang();
   const { settings, update } = useSettings();
   const scrollHide = useScrollHide();
@@ -51,19 +51,25 @@ export default function SettingsScreen() {
 
   return (
     <Screen title={tr('Settings', 'Settings')} {...scrollHide}>
-      <Section title={tr('Appearance', 'Itsura')} footer={tr('“System” follows your phone or computer.', 'Sinusundan ng “System” ang phone o computer mo.')}>
-        <View style={{ padding: space.md }}>
-          <Segmented<Appearance>
+      <Section title={tr('Appearance', 'Itsura')} footer={appearance === 'system' ? tr('TeachWise switches automatically when your device changes appearance.', 'Awtomatikong sumusunod ang TeachWise kapag nagbago ang itsura ng device mo.') : tr('Your choice applies to TeachWise on this device.', 'Para sa TeachWise sa device na ito ang pinili mo.')}>
+        <ListRow
+          icon="monitor"
+          title={tr('Follow device appearance', 'Sundin ang itsura ng device')}
+          subtitle={appearance === 'system' ? mode === 'dark' ? tr('Currently using Dark from your device.', 'Kasalukuyang Dark ayon sa device mo.') : tr('Currently using Light from your device.', 'Kasalukuyang Light ayon sa device mo.') : tr('Choose Light or Dark below.', 'Pumili ng Light o Dark sa ibaba.')}
+          toggle={{ value: appearance === 'system', onChange: (follow) => setAppearance(follow ? 'system' : mode) }}
+          last={appearance === 'system'}
+        />
+        {appearance !== 'system' && <View style={{ padding: space.md }}>
+          <Segmented<Mode>
             label={tr('Appearance', 'Itsura')}
-            value={appearance}
+            value={mode}
             onChange={setAppearance}
             options={[
-              { key: 'system', label: tr('System', 'System'), icon: 'monitor' },
               { key: 'light', label: tr('Light', 'Light'), icon: 'sun' },
               { key: 'dark', label: tr('Dark', 'Dark'), icon: 'moon' },
             ]}
           />
-        </View>
+        </View>}
       </Section>
 
       <Section title={tr('Language', 'Wika')} footer={tr('Professor Wise and the evaluation questions follow this too.', 'Sumusunod din dito si Professor Wise at ang mga tanong sa evaluation.')}>

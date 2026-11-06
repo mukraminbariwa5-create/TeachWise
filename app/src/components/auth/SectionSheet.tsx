@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { tr } from '@/lib/i18n';
 import { useLayoutSize } from '@/lib/useLayout';
+import { useReducedMotion } from '@/lib/useReducedMotion';
 import { colors, fonts, shadowStyle } from '@/theme';
 import { Icon } from '../Icon';
 import { Txt } from '../Txt';
@@ -56,6 +57,7 @@ export function SectionSheet({
   onClose: () => void;
 }) {
   const phone = useLayoutSize() === 'phone';
+  const reduced = useReducedMotion();
   const [q, setQ] = useState('');
 
   const filtered = useMemo(() => {
@@ -109,7 +111,8 @@ export function SectionSheet({
   };
 
   return (
-    <Modal visible={visible} transparent animationType={phone ? 'slide' : 'fade'} onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType={reduced ? 'none' : phone ? 'slide' : 'fade'} onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Pressable accessibilityLabel={tr('Close', 'Isara')} onPress={onClose} style={{ flex: 1, backgroundColor: 'rgba(5,5,40,0.45)', justifyContent: phone ? 'flex-end' : 'center', alignItems: 'center', padding: phone ? 0 : 20 }}>
         <Pressable
           onPress={() => {}}
@@ -180,6 +183,7 @@ export function SectionSheet({
           </ScrollView>
         </Pressable>
       </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

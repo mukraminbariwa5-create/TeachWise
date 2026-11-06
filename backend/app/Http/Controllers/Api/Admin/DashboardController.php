@@ -14,6 +14,7 @@ use App\Models\Semester;
 use App\Models\StudentProfile;
 use App\Models\User;
 use App\Support\Present;
+use App\Services\StudentClasses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 
@@ -91,9 +92,9 @@ class DashboardController extends Controller
         abort_unless($period, 422, 'There is no open evaluation period.');
 
         $count = 0;
-        StudentProfile::query()->whereNotNull('section_id')->whereHas('user')->with('user')->chunkById(200, function ($profiles) use ($period, &$count) {
+        StudentProfile::query()->whereNotNull('section_id')->whereHas('user', fn ($q) => AdminScope::managedUsers($q)->where('is_active', true))->with('user')->chunkById(200, function ($profiles) use ($period, &$count) {
             foreach ($profiles as $profile) {
-                $offeringIds = ClassOffering::where('section_id', $profile->section_id)->pluck('id');
+                $offeringIds = StudentClasses::offerings($profile->user)->pluck('id');
                 $done = Evaluation::where('evaluator_id', $profile->user_id)
                     ->where('evaluation_period_id', $period->id)
                     ->whereIn('class_offering_id', $offeringIds)->count();
@@ -119,7 +120,8 @@ class DashboardController extends Controller
             ->get()
             ->map(function (Section $section) use ($period, $semester) {
                 $offeringIds = ClassOffering::where('section_id', $section->id)
-                    ->when($semester, fn ($q) => $q->where(fn ($w) => $w->where('semester_id', $semester->id)->orWhereNull('semester_id')))
+                    ->where('semester_id', $semester?->id ?? -1)
+                    ->whereHas('teacher', fn ($q) => $q->where('role', User::ROLE_TEACHER)->where('is_active', true))
                     ->pluck('id');
                 $expected = $offeringIds->count() * $section->students_count;
                 $completed = $period

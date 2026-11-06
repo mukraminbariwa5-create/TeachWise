@@ -59,6 +59,7 @@ export interface Period {
 }
 
 export interface StudentDashboard {
+  semester: { id: number; name: string } | null;
   student: User;
   period: Period | null;
   teachers: {
@@ -122,6 +123,16 @@ export interface WiseState {
   tip: string;
   suggestions: string[];
   messages: ChatMessage[];
+  conversation: WiseConversation | null;
+  has_more_messages: boolean;
+}
+
+export interface WiseConversation {
+  id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  messages_count: number;
 }
 
 // ---- Teacher

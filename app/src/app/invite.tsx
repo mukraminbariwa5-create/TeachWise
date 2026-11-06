@@ -53,7 +53,7 @@ export default function InviteScreen() {
     try {
       const r = await api<InviteInfo>('/auth/invite', { method: 'POST', body: { code: c }, token: null });
       setInvite(r);
-      setForm((f) => ({ ...f, name: f.name || r.name || '', email: f.email || r.email || '', id_number: f.id_number || r.id_number || '' }));
+      setForm((f) => ({ ...f, name: r.name || '', email: r.email || '', id_number: r.id_number || '' }));
       tap();
     } catch (e) {
       setCodeError(e instanceof ApiError ? e.firstMessage : tr('Couldn’t check the code. Are you online?', 'Hindi ma-check ang code. Naka-online ka ba?'));
@@ -87,7 +87,7 @@ export default function InviteScreen() {
   };
 
   const problems = {
-    name: form.name.trim().split(/\s+/).length < 2 ? tr('Enter your full name.', 'Ilagay ang buong pangalan mo.') : '',
+    name: !invite?.name && form.name.trim().split(/\s+/).length < 2 ? tr('Enter your full name.', 'Ilagay ang buong pangalan mo.') : '',
     id_number: form.id_number.trim().length < 2 ? tr('Enter your employee or ID number.', 'Ilagay ang employee o ID number mo.') : '',
     username: userCheck.state === 'invalid' ? userCheck.message ?? '' : !form.username ? tr('Choose a username.', 'Pumili ng username.') : '',
     password: form.password.length < 8 ? tr('At least 8 characters.', 'Hindi bababa sa 8 character.') : '',
@@ -150,8 +150,8 @@ export default function InviteScreen() {
           <Txt weight="semibold" size={text.small} color={colors.accent}>{tr('Change code', 'Ibang code')}</Txt>
         </Pressable>
       </View>
-      <Field label={tr('Full name', 'Buong pangalan')} icon="user" value={form.name} onChangeText={set('name')} autoComplete="name" placeholder="Juan Dela Cruz" state={show('name') ? 'invalid' : 'idle'} message={show('name') || undefined} />
-      <Field label={tr('Employee / ID number', 'Employee / ID number')} icon="clipboard" value={form.id_number} onChangeText={set('id_number')} autoCapitalize="characters" autoCorrect={false} state={show('id_number') ? 'invalid' : 'idle'} message={show('id_number') || undefined} hint={tr('As used by your school.', 'Gaya ng gamit ng paaralan mo.')} />
+      <Field label={tr('Full name', 'Buong pangalan')} icon="user" value={form.name} locked={!!invite.name} onChangeText={set('name')} autoComplete="name" placeholder="Juan Dela Cruz" state={show('name') ? 'invalid' : 'idle'} message={show('name') || undefined} />
+      <Field label={tr('Employee / ID number', 'Employee / ID number')} icon="clipboard" value={form.id_number} locked={!!invite.id_number} onChangeText={set('id_number')} autoCapitalize="characters" autoCorrect={false} state={show('id_number') ? 'invalid' : 'idle'} message={show('id_number') || undefined} hint={tr('As used by your school.', 'Gaya ng gamit ng paaralan mo.')} />
       <Field
         label={tr('Username', 'Username')}
         icon="user"
@@ -163,7 +163,7 @@ export default function InviteScreen() {
         state={errors.username ? 'invalid' : userCheck.state !== 'idle' ? userCheck.state : show('username') ? 'invalid' : 'idle'}
         message={errors.username || userCheck.message || show('username') || undefined}
       />
-      <Field label={tr('Email (optional)', 'Email (opsyonal)')} icon="mail" value={form.email} onChangeText={set('email')} keyboardType="email-address" autoCapitalize="none" autoComplete="email" state={errors.email ? 'invalid' : 'idle'} message={errors.email || tr('Helps you recover your account.', 'Para ma-recover ang account mo.')} />
+      <Field label={tr('Email (optional)', 'Email (opsyonal)')} icon="mail" value={form.email} locked={!!invite.email} onChangeText={set('email')} keyboardType="email-address" autoCapitalize="none" autoComplete="email" state={errors.email ? 'invalid' : 'idle'} message={errors.email || tr('Helps you recover your account.', 'Para ma-recover ang account mo.')} />
       <PasswordField label={tr('Password', 'Password')} value={form.password} onChangeText={set('password')} autoComplete="password-new" state={show('password') ? 'invalid' : form.password.length >= 8 ? 'valid' : 'idle'} message={show('password') || undefined} />
       <PasswordField label={tr('Confirm password', 'Kumpirmahin ang password')} value={form.confirm} onChangeText={set('confirm')} autoComplete="password-new" state={form.confirm && !problems.confirm ? 'valid' : show('confirm') ? 'invalid' : 'idle'} message={show('confirm') || undefined} />
       <Checkbox value={privacy} onChange={setPrivacy} invalid={tried && !privacy} label={tr('I agree to the Data Privacy Notice', 'Sumasang-ayon ako sa Data Privacy Notice')}>

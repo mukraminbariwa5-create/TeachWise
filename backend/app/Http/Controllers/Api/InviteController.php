@@ -42,6 +42,16 @@ class InviteController extends Controller
     {
         $invite = $this->usable((string) $request->input('code'));
         Tenant::set($invite->school_id);
+        if ($invite->role === User::ROLE_TEACHER && ! $invite->department) {
+            throw ValidationException::withMessages(['code' => 'A teacher needs a department invitation. Ask your dean for a new code.']);
+        }
+
+        // School-supplied identity is authoritative, just like the student roster.
+        $request->merge([
+            'name' => $invite->name ?: $request->input('name'),
+            'id_number' => trim($invite->id_number ?: (string) $request->input('id_number')),
+            'email' => $invite->email ?: $request->input('email'),
+        ]);
 
         $data = $request->validate([
             'code' => ['required', 'string'],
@@ -57,6 +67,10 @@ class InviteController extends Controller
         ]);
 
         $user = DB::transaction(function () use ($invite, $data) {
+            $invite = Invite::whereKey($invite->id)->lockForUpdate()->first();
+            if (! $invite || ! $invite->isUsable()) {
+                throw ValidationException::withMessages(['code' => 'This invite was already used or has expired. Ask your admin for a new one.']);
+            }
             $user = User::create([
                 'id_number' => trim($data['id_number']),
                 'name' => trim($data['name']),

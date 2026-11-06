@@ -19,9 +19,8 @@ class SignupAndRecoveryTest extends ApiTestCase
             ->assertJsonPath('section.label', 'BSIT 4-A');
 
         $this->postJson('/api/auth/check-id', ['school_id' => $this->demoId(), 'id_number' => '2026-0101'])
-            ->assertJsonPath('ok', true)
-            ->assertJsonPath('name', null)
-            ->assertJsonPath('section', null);
+            ->assertJsonPath('ok', false)
+            ->assertJsonPath('reason', 'incomplete_record');
     }
 
     public function test_registration_uses_listed_name_and_section_and_needs_privacy_consent(): void
@@ -105,7 +104,7 @@ class SignupAndRecoveryTest extends ApiTestCase
         $this->postJson('/api/auth/password-requests', ['login' => 'aisha'])->assertOk();
 
         $this->assertSame(1, PasswordResetRequest::count());
-        $admin = User::where('role', 'admin')->first();
+        $admin = User::where('username', 'ccsdean')->firstOrFail();
         $this->assertTrue(AppNotification::where('user_id', $admin->id)->where('title', 'Password reset request')->exists());
 
         $this->actingAsUsername($admin->username);

@@ -17,7 +17,7 @@ class PasswordRequestController extends Controller
     public function index(): JsonResponse
     {
         $requests = PasswordResetRequest::with('user.studentProfile.section')
-            ->whereHas('user', fn ($q) => AdminScope::users($q))
+            ->whereHas('user', fn ($q) => AdminScope::managedUsers($q))
             ->orderByRaw("status = 'pending' desc")
             ->latest()
             ->limit(100)
@@ -42,7 +42,8 @@ class PasswordRequestController extends Controller
      */
     public function resolve(Request $request, PasswordResetRequest $passwordRequest): JsonResponse
     {
-        AdminScope::check(AdminScope::users(\App\Models\User::whereKey($passwordRequest->user_id))->exists());
+        AdminScope::check(AdminScope::managedUsers(\App\Models\User::whereKey($passwordRequest->user_id))->exists());
+        abort_if($passwordRequest->user_id === $request->user()->id, 422, 'Ask another administrator to reset your password.');
         abort_if($passwordRequest->status !== 'pending', 422, 'This request was already resolved.');
 
         $temporary = 'TW-'.random_int(100000, 999999);

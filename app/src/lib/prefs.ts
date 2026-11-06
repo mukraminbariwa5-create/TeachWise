@@ -23,6 +23,13 @@ export async function setPref(key: string, value: string): Promise<void> {
   }
 }
 
+/** Durable data must report storage failures instead of claiming an in-memory fallback was saved. */
+export async function setPersistentPref(key: string, value: string): Promise<void> {
+  if (Platform.OS === 'web') window.localStorage.setItem(`tw.${key}`, value);
+  else await SecureStore.setItemAsync(`tw_${key}`, value);
+  memory.set(key, value);
+}
+
 /** Once per browser tab / app launch (so a page refresh doesn't replay the intro). */
 export function sessionFlag(key: string): { get: () => boolean; set: () => void } {
   return {

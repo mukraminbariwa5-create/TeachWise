@@ -31,17 +31,6 @@ class EvaluationService
             throw ValidationException::withMessages(['period' => 'This evaluation period is closed.']);
         }
 
-        $exists = Evaluation::query()
-            ->where('evaluator_id', $evaluator->id)
-            ->where('teacher_id', $teacher->id)
-            ->where('evaluation_period_id', $period->id)
-            ->when($offeringId, fn ($q) => $q->where('class_offering_id', $offeringId), fn ($q) => $q->whereNull('class_offering_id'))
-            ->exists();
-
-        if ($exists) {
-            throw ValidationException::withMessages(['evaluation' => 'You already submitted this evaluation.']);
-        }
-
         $questions = Question::for($audience)->get()->keyBy('id');
         $given = collect($answers)->keyBy('question_id');
 
@@ -51,6 +40,17 @@ class EvaluationService
             ->pluck('rating')->map(fn ($r) => (int) $r);
 
         return DB::transaction(function () use ($evaluator, $teacher, $period, $offeringId, $comment, $questions, $given, $ratings, $audience) {
+            // Serialize this person's submissions, including peer rows whose nullable
+            // class_offering_id is not protected against duplicates by SQL uniqueness.
+            User::whereKey($evaluator->id)->lockForUpdate()->firstOrFail();
+            $exists = Evaluation::where('evaluator_id', $evaluator->id)
+                ->where('teacher_id', $teacher->id)
+                ->where('evaluation_period_id', $period->id)
+                ->when($offeringId, fn ($q) => $q->where('class_offering_id', $offeringId), fn ($q) => $q->whereNull('class_offering_id'))
+                ->exists();
+            if ($exists) {
+                throw ValidationException::withMessages(['evaluation' => 'You already submitted this evaluation.']);
+            }
             $evaluation = Evaluation::create([
                 'evaluation_period_id' => $period->id,
                 'class_offering_id' => $offeringId,

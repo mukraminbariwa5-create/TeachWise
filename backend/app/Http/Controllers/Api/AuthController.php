@@ -100,19 +100,21 @@ class AuthController extends Controller
 
     /**
      * Student self-registration. The ID number must be on the college list.
-     * When the list has the student's name and section, those are used (so nobody joins the wrong section).
+     * The approved name and section must be complete and are authoritative.
      */
     public function register(Request $request): JsonResponse
     {
         $school = $this->school($request, required: true);
         Tenant::set($school->id);
 
+        $request->merge(['id_number' => trim((string) $request->input('id_number'))]);
+
         $data = $request->validate([
             'id_number' => ['required', 'string', 'max:30', Tenant::unique('users', 'id_number')],
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
             'username' => ['required', 'string', 'alpha_dash', 'min:3', 'max:50', Rule::unique('users', 'username')],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')],
-            'section_id' => ['required', Tenant::exists('sections')],
+            'section_id' => ['nullable', Tenant::exists('sections')],
             'password' => ['required', 'confirmed', Password::min(8)],
             'accepted_privacy' => ['accepted'],
             'device_name' => ['nullable', 'string', 'max:100'],
@@ -125,18 +127,21 @@ class AuthController extends Controller
         if (! $listed) {
             throw ValidationException::withMessages(['id_number' => Say::it("This ID number isn't on {$school->name}'s list. Please contact your admin.", "Wala sa listahan ng {$school->name} ang ID na ito. Makipag-ugnayan sa admin.")]);
         }
+        if (! filled($listed->name) || ! $listed->section?->program?->department_id) {
+            throw ValidationException::withMessages(['id_number' => Say::it('Your school must complete your approved name and section before you can create an account. Please contact your department admin.', 'Kailangang kumpletuhin ng paaralan ang aprubadong pangalan at section mo bago makagawa ng account. Makipag-ugnayan sa admin ng departamento.')]);
+        }
 
         $user = DB::transaction(function () use ($data, $listed) {
             $user = User::create([
                 'id_number' => trim($data['id_number']),
-                'name' => $listed->name ?: trim($data['name']),
+                'name' => $listed->name,
                 'username' => $data['username'],
                 'email' => $data['email'] ?? null,
                 'role' => User::ROLE_STUDENT,
                 'password' => $data['password'],
                 'privacy_accepted_at' => now(),
             ]);
-            StudentProfile::create(['user_id' => $user->id, 'section_id' => $listed->section_id ?: $data['section_id']]);
+            StudentProfile::create(['user_id' => $user->id, 'section_id' => $listed->section_id]);
 
             return $user;
         });
@@ -152,7 +157,7 @@ class AuthController extends Controller
 
     /**
      * Step 1 of sign-up: is this student ID allowed to create an account?
-     * When the college list has details, it also returns the name and section to fill in.
+     * Only complete roster entries can proceed; their name and section fill the form.
      */
     public function checkId(Request $request): JsonResponse
     {
@@ -167,6 +172,9 @@ class AuthController extends Controller
         $listed = WhitelistedId::with('section')->where('id_number', $id)->first();
         if (! $listed) {
             return response()->json(['ok' => false, 'reason' => 'not_listed', 'message' => Say::it("This ID isn't on {$school->name}'s list yet. Check your school, or ask your admin to add it.", "Wala pa sa listahan ng {$school->name} ang ID na ito. I-check ang paaralan, o pakisabi sa admin na idagdag ito.")]);
+        }
+        if (! filled($listed->name) || ! $listed->section?->program?->department_id) {
+            return response()->json(['ok' => false, 'reason' => 'incomplete_record', 'message' => Say::it('Your school must complete your approved name and section before you can create an account. Please contact your department admin.', 'Kailangang kumpletuhin ng paaralan ang aprubadong pangalan at section mo bago makagawa ng account. Makipag-ugnayan sa admin ng departamento.')]);
         }
 
         return response()->json([
@@ -220,7 +228,7 @@ class AuthController extends Controller
         if ($user && ! PasswordResetRequest::where('user_id', $user->id)->where('status', 'pending')->exists()) {
             PasswordResetRequest::create(['school_id' => $user->school_id, 'user_id' => $user->id, 'note' => $data['note'] ?? null]);
             Notifier::send(
-                Notifier::admins($user->school_id),
+                Notifier::accountAdmins($user),
                 'account',
                 'Password reset request',
                 "{$user->name} ({$user->id_number}) forgot their password and asked for a reset.".(! empty($data['note']) ? " Note: {$data['note']}" : '')

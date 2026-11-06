@@ -1,6 +1,7 @@
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { tr } from '@/lib/i18n';
 import { useLayoutSize } from '@/lib/useLayout';
+import { useReducedMotion } from '@/lib/useReducedMotion';
 import { colors, shadowStyle } from '@/theme';
 import { Button } from '../Button';
 import { Icon } from '../Icon';
@@ -13,6 +14,7 @@ import { WiseMascot } from '../WiseMascot';
  */
 export function PrivacyNotice({ visible, onClose, onAgree }: { visible: boolean; onClose: () => void; onAgree: () => void }) {
   const phone = useLayoutSize() === 'phone';
+  const reduced = useReducedMotion();
   const sections: { title: string; body: string }[] = [
     {
       title: tr('What we collect', 'Ano ang kinokolekta namin'),
@@ -52,7 +54,7 @@ export function PrivacyNotice({ visible, onClose, onAgree }: { visible: boolean;
   ];
 
   return (
-    <Modal visible={visible} transparent animationType={phone ? 'slide' : 'fade'} onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType={reduced ? 'none' : phone ? 'slide' : 'fade'} onRequestClose={onClose}>
       <Pressable accessibilityLabel={tr('Close', 'Isara')} onPress={onClose} style={{ flex: 1, backgroundColor: 'rgba(5,5,40,0.45)', justifyContent: phone ? 'flex-end' : 'center', alignItems: 'center', padding: phone ? 0 : 20 }}>
         <Pressable onPress={() => {}} style={[{ width: '100%', maxWidth: phone ? undefined : 560, maxHeight: phone ? '90%' : '85%', backgroundColor: colors.card, borderRadius: 28, borderBottomLeftRadius: phone ? 0 : 28, borderBottomRightRadius: phone ? 0 : 28, padding: 22, gap: 14 }, shadowStyle('lift')]}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
@@ -61,7 +63,7 @@ export function PrivacyNotice({ visible, onClose, onAgree }: { visible: boolean;
               <Txt weight="semibold" size={12} color={colors.muted} style={{ letterSpacing: 1 }}>RA 10173</Txt>
               <Txt weight="bold" size={21} accessibilityRole="header">{tr('Data Privacy Notice', 'Data Privacy Notice')}</Txt>
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel={tr('Close', 'Isara')} onPress={onClose} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
+            <Pressable accessibilityRole="button" accessibilityLabel={tr('Close', 'Isara')} onPress={onClose} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="close" size={16} color={colors.textSoft} strokeWidth={2.2} />
             </Pressable>
           </View>

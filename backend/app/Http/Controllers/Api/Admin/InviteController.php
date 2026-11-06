@@ -22,6 +22,7 @@ class InviteController extends Controller
     public function index(): JsonResponse
     {
         $invites = Invite::query()
+            ->where('role', AdminScope::limited() ? 'teacher' : 'admin')
             ->when(AdminScope::limited(), fn ($q) => $q->where('department_id', AdminScope::departmentId()))
             ->with('department:id,name')
             ->latest('id')->limit(300)->get()
@@ -33,7 +34,7 @@ class InviteController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'role' => ['required', Rule::in(AdminScope::limited() ? ['teacher'] : ['teacher', 'admin'])],
+            'role' => ['required', Rule::in(AdminScope::limited() ? ['teacher'] : ['admin'])],
             'department_id' => ['nullable', 'integer', Tenant::exists('departments')],
             'people' => ['required', 'array', 'min:1', 'max:300'],
             'people.*.name' => ['nullable', 'string', 'max:150'],
@@ -62,6 +63,7 @@ class InviteController extends Controller
     public function destroy(Invite $invite): JsonResponse
     {
         AdminScope::check(! AdminScope::limited() || $invite->department_id === AdminScope::departmentId());
+        abort_unless($invite->role === (AdminScope::limited() ? 'teacher' : 'admin'), 403, 'This invite belongs to the other administrator role.');
         abort_if($invite->used_at, 422, 'This code was already used.');
         $invite->delete();
 

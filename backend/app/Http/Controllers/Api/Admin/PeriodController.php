@@ -28,7 +28,12 @@ class PeriodController extends Controller
 
     public function update(Request $request, EvaluationPeriod $period): JsonResponse
     {
-        $period->update($this->validated($request));
+        $data = $this->validated($request);
+        $changesIdentity = $data['type'] !== $period->type
+            || (array_key_exists('semester_id', $data) && ($data['semester_id'] === null ? null : (int) $data['semester_id']) !== $period->semester_id);
+        abort_if($changesIdentity && $period->evaluations()->exists(), 422,
+            'This period already has evaluations. Keep its type and semester; create a new period for a different evaluation cycle.');
+        $period->update($data);
         Audit::log('period.updated', "Changed the {$period->name} evaluation period ({$period->opens_at->format('M j')} to {$period->closes_at->format('M j')}).", $period);
 
         return response()->json(['period' => Present::period($period)]);

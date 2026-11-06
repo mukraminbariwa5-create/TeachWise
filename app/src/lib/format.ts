@@ -27,6 +27,12 @@ export function today(): string {
   return shortDate(new Date().toISOString());
 }
 
+/** A shared urgency threshold for evaluation deadlines: the final 72 hours. */
+export function isClosingSoon(period: { is_open: boolean; closes_at: string } | null | undefined, now = Date.now()): boolean {
+  const remaining = period ? new Date(period.closes_at).getTime() - now : 0;
+  return !!period?.is_open && remaining > 0 && remaining <= 3 * 86_400_000;
+}
+
 export function greetingWord(): string {
   const h = new Date().getHours();
   return h < 12 ? tr('Good morning,', 'Magandang umaga,') : h < 18 ? tr('Good afternoon,', 'Magandang hapon,') : tr('Good evening,', 'Magandang gabi,');
